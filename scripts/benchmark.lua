@@ -18,6 +18,8 @@ if not vim.env.AGENTIC_BENCH_CHILD then
     )
     vim.fn.jobstop(channel)
     assert(ok, err)
+    -- The child must not print: a hit-enter prompt blocks the RPC reply.
+    print(vim.env.AGENTIC_BENCH_OUTPUT or "/private/tmp/agentic-benchmark.json")
     vim.cmd("qa!")
     return
 end
@@ -286,4 +288,3 @@ assert(discovered == pages * 100, "Picker lost sessions")
 local output = vim.env.AGENTIC_BENCH_OUTPUT
     or "/private/tmp/agentic-benchmark.json"
 vim.fn.writefile({ vim.json.encode(results) }, output)
-print(output)
