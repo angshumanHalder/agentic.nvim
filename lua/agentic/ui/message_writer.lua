@@ -398,7 +398,18 @@ function MessageWriter:_check_auto_scroll(bufnr)
     local total_lines = vim.api.nvim_buf_line_count(bufnr)
     local distance_from_bottom = total_lines - cursor_line
 
-    return distance_from_bottom <= threshold
+    if distance_from_bottom > threshold then
+        return false
+    end
+
+    local cursor_vcol = vim.api.nvim_win_call(winid, function()
+        return vim.fn.virtcol(".") - 1
+    end)
+    local height = vim.api.nvim_win_text_height(winid, {
+        start_row = cursor_line - 1,
+        start_vcol = cursor_vcol,
+    })
+    return type(height) == "table" and height.all - 1 <= threshold
 end
 
 --- @param bufnr integer

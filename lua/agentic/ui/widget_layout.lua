@@ -299,6 +299,7 @@ local function show_layout(params, position)
 
     get_or_create_window(win_nrs, "chat", buf_nrs.chat, chat_opts, {
         scrolloff = 4,
+        smoothscroll = true,
         statuscolumn = ToolBlockBorder.STATUSCOLUMN_EXPR,
         winhighlight = CHAT_GUTTER_WINHIGHLIGHT,
         winfixheight = is_bottom,

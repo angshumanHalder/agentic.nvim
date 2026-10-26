@@ -109,6 +109,18 @@ end
 function ChatNavigation.setup_keymaps(bufnr)
     local keymaps = Config.keymaps.chat
 
+    for _, motion in ipairs({
+        { key = keymaps.next_line, rhs = "j" },
+        { key = keymaps.prev_line, rhs = "k" },
+    }) do
+        BufHelpers.multi_keymap_set(motion.key, bufnr, function()
+            if vim.v.count == 0 then
+                return "g" .. motion.rhs
+            end
+            return motion.rhs
+        end, { expr = true, desc = "Agentic: Move by display line" })
+    end
+
     --- @type { key: agentic.UserConfig.KeymapValue, fn: fun(bufnr: integer, count: integer|nil), desc: string }[]
     local bindings = {
         {
