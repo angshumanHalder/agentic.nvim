@@ -605,7 +605,11 @@ function ChatWidget:_create_buf_nrs()
         }),
     }
 
-    -- The chat buffer's highlighting is managed by MessageWriter.
+    vim.treesitter.stop(buf_nrs.chat)
+    if vim.g.syntax_on then
+        vim.bo[buf_nrs.chat].syntax = "AgenticChat"
+    end
+
     for name, bufnr in pairs(buf_nrs) do
         if name ~= "chat" then
             pcall(vim.treesitter.start, bufnr, "markdown")

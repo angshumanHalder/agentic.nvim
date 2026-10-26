@@ -11,6 +11,34 @@ describe("Chat Markdown", function()
     end)
 
     it(
+        "keeps chat highlighting responsive when a filetype hook starts Treesitter",
+        function()
+            child.lua([[
+            vim.cmd('syntax enable')
+            vim.treesitter.language.register('markdown', 'AgenticChat')
+            vim.api.nvim_create_autocmd('FileType', {
+                pattern = 'AgenticChat',
+                callback = function(args)
+                    vim.treesitter.start(args.buf, 'markdown')
+                    started = vim.treesitter.highlighter.active[args.buf] ~= nil
+                end,
+            })
+            widget = require('agentic.ui.chat_widget'):new(function() return true end)
+        ]])
+            assert.is_true(child.lua_get("started"))
+            assert.is_false(
+                child.lua_get(
+                    "vim.treesitter.highlighter.active[widget.buf_nrs.chat] ~= nil"
+                )
+            )
+            assert.equal(
+                "AgenticChat",
+                child.lua_get("vim.bo[widget.buf_nrs.chat].syntax")
+            )
+        end
+    )
+
+    it(
         "does not pull a reader out of a wrapped response during streaming",
         function()
             child.lua([[

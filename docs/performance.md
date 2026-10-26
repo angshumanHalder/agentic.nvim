@@ -125,9 +125,8 @@ first page / 100 sessions, so these durations describe different completed work.
 The initial fixture used short lines. User testing exposed paragraph jumps with
 `j`/`k`, despite fast history loading. Inspection of the running chat found
 19,730 buffer lines, wrapping enabled, `smoothscroll` disabled, and no loaded
-Markdown renderer. Treesitter was already active; an isolated copy of the same
-text did not establish Treesitter as the scrolling bottleneck, so it remains
-enabled.
+Markdown renderer. Treesitter was already active. A later live profile isolated
+its cost; see below.
 
 Uncounted `j`/`k` now use display-line motions (`gj`/`gk`). Counted motions such as
 `5j` retain buffer-line movement. Both keys are configurable, including disabling
@@ -221,6 +220,25 @@ that opening chat does not load the optional renderer, that the aligned view
 keeps source and editability intact, and that all column boundaries match. It
 uses synthetic text. The new navigation regression also checks closing and
 wiping the temporary view.
+
+## Follow-up: display-line stutter
+
+After reopening the 19,730-line session, the user found that `gj` stuttered.
+Profiling the running Neovim with a redraw after each of 100 `gj` motions
+isolated the Markdown Treesitter highlighter started by a `FileType` hook.
+Five runs took about 298–350 ms with that highlighter active. After stopping
+it and selecting the existing `AgenticChat` syntax, warmed runs took about
+25–29 ms. The tool border gutter accounted for 1.65 ms of a 359 ms run.
+These are complete 100-motion workloads, measured in the same buffer and
+window; timings exclude terminal painting.
+
+`ChatWidget` now stops only chat Treesitter highlighting after the `FileType`
+event and selects the bounded native syntax when `:syntax enable` is active.
+The Markdown parser remains registered for heading navigation and the
+on-demand table view. A regression starts the highlighter from a `FileType`
+hook and checks that widget creation leaves it inactive with native syntax.
+An optional renderer can still impose its own parsing cost if explicitly
+enabled for `AgenticChat`.
 
 ## Provider behavior and limits
 

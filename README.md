@@ -1375,7 +1375,9 @@ with `zl`/`zh`. The source conversation is unchanged. Configure this key with
 `keymaps.chat.view_table`.
 
 An optional Markdown renderer can decorate inline tables that fit in the chat
-panel. Include `AgenticChat` in both its file types and lazy-loading triggers:
+panel, but can slow navigation in long histories. The chat uses bounded native
+syntax by default. Include `AgenticChat` in both its file types and lazy-loading
+triggers only if you want the extra rendering:
 
 ```lua
 {

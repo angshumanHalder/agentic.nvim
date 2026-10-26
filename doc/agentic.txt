@@ -1162,7 +1162,7 @@ INTEGRATIONS                                      *agentic-integrations*
 
 Agentic defines these buffer filetypes:
 
-  `AgenticChat`          Main chat display (markdown + treesitter)
+  `AgenticChat`          Main chat display (bounded native syntax)
   `AgenticInput`         Prompt input
   `AgenticCode`          Code block display
   `AgenticFiles`         File list
@@ -1229,7 +1229,8 @@ render-markdown.nvim ~
 
 The built-in T key opens a wide table in an aligned view without an optional
 renderer. To decorate inline tables that fit the chat panel, add `AgenticChat`
-to the renderer's file types and lazy-loading triggers:
+to the renderer's file types and lazy-loading triggers. This can slow navigation
+in long histories; the chat uses bounded native syntax by default:
 >lua
   {
     "MeanderingProgrammer/render-markdown.nvim",
