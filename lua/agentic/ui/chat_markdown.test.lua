@@ -64,50 +64,6 @@ describe("Chat Markdown", function()
         end
     )
 
-    it("allows screen-line keys to be remapped", function()
-        child.lua([[
-            require('agentic').setup({ keymaps = { chat = { next_line = 'J', prev_line = 'K' } } })
-            widget = require('agentic.ui.chat_widget'):new(function() return true end)
-            require('agentic.utils.buf_helpers').with_modifiable(widget.buf_nrs.chat, function(buf)
-                vim.api.nvim_buf_set_lines(buf, 0, -1, false, { string.rep('wrapped text ', 100), 'next' })
-            end)
-            widget:show({ focus_prompt = false })
-            vim.api.nvim_set_current_win(widget.win_nrs.chat)
-            vim.cmd('normal! gg0')
-        ]])
-        assert.is_true(
-            child.lua_get(
-                'vim.fn.maparg("J", "n", false, true).callback ~= nil'
-            )
-        )
-        child.type_keys("J")
-        assert.equal(1, child.lua_get('vim.fn.line(".")'))
-        assert.is_true(child.lua_get('vim.fn.col(".") > 1'))
-        child.type_keys("K")
-        assert.equal(1, child.lua_get('vim.fn.col(".")'))
-    end)
-
-    it("moves j/k by display lines while keeping counted motions", function()
-        child.lua([[
-            widget = require('agentic.ui.chat_widget'):new(function() return true end)
-            require('agentic.utils.buf_helpers').with_modifiable(widget.buf_nrs.chat, function(buf)
-                vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-                    string.rep('wrapped paragraph ', 100), 'second', 'third', 'fourth',
-                })
-            end)
-            widget:show({ focus_prompt = false })
-            vim.api.nvim_set_current_win(widget.win_nrs.chat)
-            vim.cmd('normal! gg0')
-        ]])
-        child.type_keys("j")
-        assert.equal(1, child.lua_get('vim.fn.line(".")'))
-        assert.is_true(child.lua_get('vim.fn.col(".") > 1'))
-        child.type_keys("k")
-        assert.equal(1, child.lua_get('vim.fn.col(".")'))
-        child.type_keys("3j")
-        assert.equal(4, child.lua_get('vim.fn.line(".")'))
-    end)
-
     it("scrolls within a wrapped paragraph instead of skipping it", function()
         child.lua([[
             widget = require('agentic.ui.chat_widget'):new(function() return true end)

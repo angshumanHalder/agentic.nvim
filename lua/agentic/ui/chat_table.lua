@@ -1,5 +1,3 @@
-local BufHelpers = require("agentic.utils.buf_helpers")
-
 local ChatTable = {}
 
 --- @param text string
@@ -71,7 +69,8 @@ local function layout_rows(rows, max_width)
         total_width = total_width - 1
     end
 
-    local lines = {}
+    local rendered = {}
+    local wrapped = false
     for _, row in ipairs(rows) do
         local cells = {}
         local height = 1
@@ -91,7 +90,9 @@ local function layout_rows(rows, max_width)
                 height = math.max(height, #cells[index])
             end
         end
+        wrapped = wrapped or height > 1
 
+        local lines = {}
         for line_index = 1, height do
             local parts = {}
             for index, width in ipairs(widths) do
@@ -107,112 +108,116 @@ local function layout_rows(rows, max_width)
             end
             lines[#lines + 1] = "| " .. table.concat(parts, " | ") .. " |"
         end
+        rendered[#rendered + 1] = lines
+    end
+
+    -- Wrapped cells hide row boundaries; separate body rows when any wraps.
+    local separator = {}
+    for index, width in ipairs(widths) do
+        separator[index] = string.rep("-", width)
+    end
+    local lines = {}
+    for index, row_lines in ipairs(rendered) do
+        if wrapped and index > 3 then
+            lines[#lines + 1] = "| " .. table.concat(separator, " | ") .. " |"
+        end
+        vim.list_extend(lines, row_lines)
     end
     return lines
 end
 
---- @param bufnr integer
---- @return integer|nil winid
-function ChatTable.open(bufnr)
-    local cursor = vim.api.nvim_win_get_cursor(0)
-    local ok, parser = pcall(vim.treesitter.get_parser, bufnr, "markdown")
-    if not ok or not parser then
-        return nil
-    end
-    parser:parse({ cursor[1] - 1, cursor[1] })
-    local node = vim.treesitter.get_node({
-        bufnr = bufnr,
-        pos = { cursor[1] - 1, cursor[2] },
-        ignore_injections = true,
-    })
-    while node and node:type() ~= "pipe_table" do
-        node = node:parent()
-    end
-    if not node then
-        return nil
-    end
+--- @param line string|nil
+--- @return boolean
+local function is_row(line)
+    return line ~= nil and line:find("|", 1, true) ~= nil
+end
 
+--- @param line string|nil
+--- @return boolean
+local function is_delimiter(line)
+    return line ~= nil
+        and is_row(line)
+        and line:find("-", 1, true) ~= nil
+        and line:match("^[%s|:%-]+$") ~= nil
+end
+
+--- @param line string
+--- @return string[] cells
+local function split_cells(line)
+    local cells = {}
+    local body = line:gsub("\\|", "\0"):gsub("^%s*|", ""):gsub("|%s*$", "")
+    for cell in (body .. "|"):gmatch("([^|]*)|") do
+        -- Link destinations would dominate narrow columns; keep the label.
+        local text = cell:gsub("%z", "\\|"):gsub("%[([^%]]+)%]%b()", "%1")
+        cells[#cells + 1] = vim.trim(text)
+    end
+    return cells
+end
+
+--- @param lines string[] header, delimiter, then body rows
+--- @param width integer
+--- @return string[] lines
+local function render_table(lines, width)
+    local align = {}
+    for index, cell in ipairs(split_cells(lines[2])) do
+        local left = cell:sub(1, 1) == ":"
+        local right = cell:sub(-1) == ":"
+        align[index] = left and right and "center"
+            or (right and "right" or "left")
+    end
     local rows = {}
-    for child in node:iter_children() do
-        if
-            child:type() == "pipe_table_header"
-            or child:type() == "pipe_table_row"
-            or child:type() == "pipe_table_delimiter_row"
-        then
-            local row = {
-                cells = {},
-                delimiter = child:type() == "pipe_table_delimiter_row",
-                align = {},
-            }
-            for cell in child:iter_children() do
-                if
-                    cell:type() == "pipe_table_cell"
-                    or cell:type() == "pipe_table_delimiter_cell"
-                then
-                    local value = vim.treesitter
-                        .get_node_text(cell, bufnr)
-                        :gsub("%[([^%]]+)%]%b()", "%1")
-                        :gsub("`", "")
-                        :gsub("^%s+", "")
-                        :gsub("%s+$", "")
-                    row.cells[#row.cells + 1] = value
-                    if row.delimiter then
-                        local left = value:sub(1, 1) == ":"
-                        local right = value:sub(-1) == ":"
-                        row.align[#row.align + 1] = left and right and "center"
-                            or (right and "right" or "left")
-                    end
-                end
-            end
-            rows[#rows + 1] = row
-        end
+    for index, line in ipairs(lines) do
+        rows[index] = {
+            cells = split_cells(line),
+            delimiter = index == 2,
+            align = align,
+        }
     end
-    if #rows == 0 then
-        return nil
-    end
-    local alignment = {}
-    for _, row in ipairs(rows) do
-        if row.delimiter then
-            alignment = row.align
+    return layout_rows(rows, width)
+end
+
+--- Aligns GFM pipe tables outside code fences, wrapping cells to `width`.
+--- Unless `final`, a table or a possible header at the end of `lines` may
+--- still grow, so processing stops before it.
+--- @param lines string[]
+--- @param width integer
+--- @param in_fence boolean
+--- @param final boolean
+--- @return string[] rendered Replacement for the first `consumed` lines
+--- @return integer consumed
+--- @return boolean in_fence Fence state after the consumed lines
+function ChatTable.render(lines, width, in_fence, final)
+    local rendered = {}
+    local index = 1
+    while index <= #lines do
+        local line = lines[index]
+        local is_fence = line:match("^%s*```") or line:match("^%s*~~~")
+        local may_start = not in_fence and not is_fence and is_row(line)
+        if may_start and lines[index + 1] == nil and not final then
             break
-        end
-    end
-    for _, row in ipairs(rows) do
-        if not row.delimiter then
-            row.align = alignment
-        end
-    end
-
-    local lines = layout_rows(rows, math.max(1, vim.o.columns - 4))
-
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-    vim.bo[buf].bufhidden = "wipe"
-    vim.bo[buf].modifiable = false
-    vim.bo[buf].filetype = "AgenticTable"
-    local width = math.min(
-        vim.fn.strdisplaywidth(lines[1]),
-        math.max(1, vim.o.columns - 4)
-    )
-    local height = math.min(#lines, math.max(1, vim.o.lines - 4))
-    local winid = vim.api.nvim_open_win(buf, true, {
-        relative = "editor",
-        style = "minimal",
-        border = "rounded",
-        width = width,
-        height = height,
-        row = math.floor((vim.o.lines - height - 2) / 2),
-        col = math.floor((vim.o.columns - width - 2) / 2),
-    })
-    vim.wo[winid][0].wrap = false
-    for _, key in ipairs({ "q", "<Esc>" }) do
-        BufHelpers.keymap_set(buf, "n", key, function()
-            if BufHelpers.is_win_usable(winid) then
-                vim.api.nvim_win_close(winid, true)
+        elseif may_start and is_delimiter(lines[index + 1]) then
+            local stop = index + 2
+            while is_row(lines[stop]) do
+                stop = stop + 1
             end
-        end, { desc = "Agentic: Close table" })
+            if lines[stop] == nil and not final then
+                break
+            end
+            vim.list_extend(
+                rendered,
+                render_table(vim.list_slice(lines, index, stop - 1), width)
+            )
+            index = stop
+        else
+            if is_fence then
+                -- ponytail: any fence toggles; nested fences of mixed length are rare in chat
+                in_fence = not in_fence
+            end
+            rendered[#rendered + 1] = line
+            index = index + 1
+        end
     end
-    return winid
+    return rendered, index - 1, in_fence
 end
 
 return ChatTable

@@ -128,12 +128,11 @@ The initial fixture used short lines. User testing exposed paragraph jumps with
 Markdown renderer. Treesitter was already active. A later live profile isolated
 its cost; see below.
 
-Uncounted `j`/`k` now use display-line motions (`gj`/`gk`). Counted motions such as
-`5j` retain buffer-line movement. Both keys are configurable, including disabling
-the mappings with `{}`. The permission manager preserves these mappings away
-from permission buttons and restores them after approval. Chat windows enable
-native `smoothscroll`, allowing scrolling within a single wrapped paragraph;
-this is Neovim's wrapped-line behavior, not animated scrolling.
+Uncounted `j`/`k` were mapped to display-line motions (`gj`/`gk`). That mapping
+was later removed at the user's request; `j`/`k` are native buffer-line motions
+again. Chat windows enable native `smoothscroll`, allowing scrolling within a
+single wrapped paragraph; this is Neovim's wrapped-line behavior, not animated
+scrolling.
 
 Streaming previously treated the last buffer line as near the bottom even if
 hundreds of wrapped screen rows remained below the cursor. The writer now checks
@@ -205,7 +204,8 @@ full interactive session. The local Neovim configuration now loads
 buffers avoid that optional parse. The plugin's native selective highlighting
 remains active.
 
-The user chose an aligned table view on demand. `T` on a Markdown pipe table
+The user first chose an aligned table view on demand; it was later replaced by
+in-chat alignment (see the last follow-up). `T` on a Markdown pipe table
 opens a read-only floating view; `q` or `<Esc>` closes it. The view uses the
 existing Markdown Treesitter parser only when requested, drops link destinations
 from display, and leaves the conversation source unchanged. The first version
@@ -239,6 +239,26 @@ hook and checks that widget creation leaves it inactive with native syntax.
 An optional renderer can still impose its own parsing cost if explicitly
 enabled for `AgenticChat`.
 
+## Follow-up: in-chat tables and native `j`/`k`
+
+The `gj`/`gk` mapping and the `T` table view were removed. `MessageWriter` now
+rewrites a complete GFM pipe table in the chat buffer as aligned rows, with
+cells wrapped to the chat window's text width (80 columns when hidden). Link
+destinations are dropped from cells; a separator line divides body rows when a
+cell wraps. Tables inside code fences are untouched. Chat history keeps the
+original Markdown, so provider-switch replay re-renders at the current width.
+
+A whole message (restore, replay) is rendered before it is appended. While
+streaming, only completed agent lines since the last check are scanned; a
+table is rewritten once a following line completes, or when a tool call, thought
+or finish message ends the stream. An unfinished table is re-read per chunk, so
+the cost is bounded by the table, not the history.
+
+With the benchmark fixture (a table in every text message, 900 tables at 1,000
+messages), median load rose from 21.0 ms to 38.9 ms; scrolling (25.5 → 26.8 ms)
+and streaming (39.1 → 40.6 ms) were unchanged within noise. The streaming
+workload contains no table.
+
 ## Provider behavior and limits
 
 Claude Code (`claude-acp` / `claude-agent-acp`), Codex (`codex-acp`) and Gemini
@@ -264,10 +284,10 @@ Actual installed provider versions and credentials were not exercised.
   restoration were not introduced because the measured 1,000-message workload
   no longer needed them. Much larger histories or giant tool outputs can still
   require such work. Existing scroll-preservation and permission tests remain.
-- Markdown is a highlighting subset, not a CommonMark layout engine: no table
-  column alignment, nested emphasis guarantees, embedded-language highlighting,
-  or markup concealment in the chat itself; `T` provides a separate aligned
-  table view. Very long lines and jumps into fences beginning beyond
+- Markdown is a highlighting subset, not a CommonMark layout engine: no nested
+  emphasis guarantees, embedded-language highlighting, or markup concealment.
+  Pipe tables are aligned in the chat at the width current when they complete;
+  they do not reflow on resize. Very long lines and jumps into fences beginning beyond
   the syntax synchronization window can lose highlighting accuracy. Text is
   preserved. Syntax scanning bounds can be adjusted through native options.
 

@@ -862,9 +862,6 @@ your setup:
 
       -- Keybindings for chat buffer navigation
       chat = {
-        view_table = "T",
-        next_line = "j",
-        prev_line = "k",
         next_heading = "]]",
         prev_heading = "[[",
         next_tool_call = "]t",
@@ -1368,16 +1365,13 @@ correctly without interference from your statusline plugin.
 
 ### Markdown render plugins
 
-The conversation buffer has filetype `AgenticChat`. Place the cursor on a pipe
-table and press `T` to open an aligned, read-only table view; press `q` or
-`<Esc>` to return. Cells wrap to the available width while preserving column
-alignment. The source conversation is unchanged. Configure this key with
-`keymaps.chat.view_table`.
+The conversation buffer has filetype `AgenticChat` and uses bounded native
+syntax. Pipe tables are aligned in the chat itself once complete, with cells
+wrapped to the chat width. Tables inside code fences are left as written.
 
-An optional Markdown renderer can decorate inline tables that fit in the chat
-panel, but can slow navigation in long histories. The chat uses bounded native
-syntax by default. Include `AgenticChat` in both its file types and lazy-loading
-triggers only if you want the extra rendering:
+An optional Markdown renderer can add decorations, but can slow navigation in
+long histories. Include `AgenticChat` in both its file types and lazy-loading
+triggers only if you want it:
 
 ```lua
 {
@@ -1399,12 +1393,7 @@ triggers only if you want the extra rendering:
 ```
 
 With `vim.pack`, load the renderer on the `AgenticChat` FileType event as well
-as `markdown`. Wide rows still wrap independently in a narrow panel, and the
-renderer parses large histories on first focus. The built-in `T` view avoids
-both limits without another dependency. Chat `j`/`k` move through display lines;
-counted motions
-such as `5j` still move through buffer lines. Configure `keymaps.chat.next_line`
-and `prev_line`, or set either to `{}` to leave its native key untouched.
+as `markdown`. The renderer parses large histories on first focus.
 
 ### Blink.cmp
 

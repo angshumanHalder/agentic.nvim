@@ -861,7 +861,7 @@ describe("agentic.ui.PermissionManager", function()
         )
 
         it(
-            "removes permission keys and restores navigation when focus clears",
+            "all eight cycle keys + <CR> removed when no block is focused",
             function()
                 seed_block("tc-1")
                 pm:add_request(
@@ -890,37 +890,12 @@ describe("agentic.ui.PermissionManager", function()
                 pm:resolve("tc-1", "allow-once")
 
                 for _, lhs in ipairs(cycle_keys) do
-                    if lhs == "j" or lhs == "k" then
-                        assert.is_true(has_buf_keymap("n", lhs))
-                    else
-                        assert.is_false(has_buf_keymap("n", lhs))
-                    end
+                    assert.is_false(has_buf_keymap("n", lhs))
                 end
                 assert.is_false(has_buf_keymap("n", "<CR>"))
             end
         )
     end)
-
-    it(
-        "keeps screen-line navigation during and after permission approval",
-        function()
-            require("agentic.ui.chat_navigation").setup_keymaps(bufnr)
-            seed_block("tc-screen")
-            pm:add_request(make_request("tc-screen"), function() end)
-            vim.api.nvim_win_set_cursor(winid, { 1, 0 })
-            local while_pending = get_digit_callback("j")
-            assert.is_not_nil(while_pending)
-            if while_pending then
-                assert.equal("gj", while_pending())
-            end
-            pm:resolve("tc-screen", "allow-once")
-            local after_approval = get_digit_callback("j")
-            assert.is_not_nil(after_approval)
-            if after_approval then
-                assert.equal("gj", after_approval())
-            end
-        end
-    )
 
     describe("digit keymap lifecycle", function()
         it("digit 2 submits option 2", function()

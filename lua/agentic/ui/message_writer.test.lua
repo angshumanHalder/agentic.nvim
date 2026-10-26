@@ -106,6 +106,107 @@ describe("agentic.ui.MessageWriter", function()
         assert.is_false(vim.bo[bufnr].modifiable)
     end)
 
+    describe("tables", function()
+        --- @param line string
+        --- @return integer[] cols
+        local function bars(line)
+            local cols = {}
+            for col in line:gmatch("()|") do
+                cols[#cols + 1] = col
+            end
+            return cols
+        end
+
+        --- @return string[] rows
+        local function table_rows()
+            local rows = {}
+            for _, line in
+                ipairs(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false))
+            do
+                if line:sub(1, 1) == "|" then
+                    rows[#rows + 1] = line
+                end
+            end
+            return rows
+        end
+
+        --- @param text string
+        local function chunk(text)
+            writer:write_message_chunk({
+                sessionUpdate = "agent_message_chunk",
+                content = { type = "text", text = text },
+            })
+        end
+
+        local wide = "| Command | Issue |\n|---|---:|\n| [`TYPE`](</long/path.rs:42>) | "
+            .. string.rep("ignored extra arguments ", 6)
+            .. "|\n| `BLPOP` | timeout |\n"
+
+        it("aligns and wraps a written table to the window width", function()
+            require("agentic.utils.buf_helpers").win_set_width(winid, 40)
+            writer:write_message({
+                sessionUpdate = "agent_message_chunk",
+                content = {
+                    type = "text",
+                    text = "Before\n\n" .. wide .. "\nAfter",
+                },
+            })
+            local rows = table_rows()
+            assert.is_true(#rows > 4)
+            for _, row in ipairs(rows) do
+                assert.equal(bars(rows[1]), bars(row))
+                assert.is_true(vim.fn.strdisplaywidth(row) <= 40)
+            end
+            local text = table.concat(
+                vim.api.nvim_buf_get_lines(bufnr, 0, -1, false),
+                "\n"
+            )
+            assert.is_not_nil(text:find("Before", 1, true))
+            assert.is_not_nil(text:find("After", 1, true))
+            assert.is_not_nil(text:find("`TYPE`", 1, true))
+            assert.is_nil(text:find("/long/path", 1, true))
+        end)
+
+        it("leaves pipe tables inside code fences unchanged", function()
+            local source = "```\n| a | b |\n|---|---|\n| long cell | x |\n```"
+            writer:write_message({
+                sessionUpdate = "agent_message_chunk",
+                content = { type = "text", text = source },
+            })
+            local text = table.concat(
+                vim.api.nvim_buf_get_lines(bufnr, 0, -1, false),
+                "\n"
+            )
+            assert.is_not_nil(text:find(source, 1, true))
+        end)
+
+        it("aligns a streamed table once a following line completes", function()
+            for piece in (wide .. "\nAfter "):gmatch(".?.?.?.?.?.?.?") do
+                if piece ~= "" then
+                    chunk(piece)
+                end
+            end
+            local rows = table_rows()
+            assert.is_true(#rows >= 4)
+            for _, row in ipairs(rows) do
+                assert.equal(bars(rows[1]), bars(row))
+            end
+            chunk("text")
+            local last = vim.api.nvim_buf_get_lines(bufnr, -2, -1, false)[1]
+            assert.equal("After text", last)
+        end)
+
+        it("aligns a streamed table that ends the response", function()
+            chunk("| a | b |\n|---|---|\n| longer cell | x |")
+            assert.is_false(
+                bars(table_rows()[1])[2] == bars(table_rows()[3])[2]
+            )
+            writer:write_finish_message({ stopReason = "end_turn" }, nil)
+            local rows = table_rows()
+            assert.equal(bars(rows[1]), bars(rows[3]))
+        end)
+    end)
+
     --- @param line_count integer
     --- @param cursor_line integer
     local function setup_buffer(line_count, cursor_line)

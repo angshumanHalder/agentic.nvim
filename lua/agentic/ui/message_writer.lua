@@ -1,5 +1,6 @@
 local ToolCallDiff = require("agentic.ui.tool_call_diff")
 local BufHelpers = require("agentic.utils.buf_helpers")
+local ChatTable = require("agentic.ui.chat_table")
 local Config = require("agentic.config")
 local DiffHighlighter = require("agentic.utils.diff_highlighter")
 local Fold = require("agentic.ui.tool_call_fold")
@@ -65,6 +66,8 @@ local TITLE_FENCE = "`````"
 --- @field _thinking_extmark_id? integer
 --- @field _thinking_start_line? integer
 --- @field _thinking_end_line? integer
+--- @field _table_scan_row? integer First streamed agent row not yet checked for tables
+--- @field _table_in_fence? boolean
 local MessageWriter = {}
 MessageWriter.__index = MessageWriter
 
@@ -186,9 +189,15 @@ function MessageWriter:write_message(update)
 
     self:_clear_thinking_state()
     self:_capture_scroll(self.bufnr)
+    self:_flush_streamed_tables()
     self:_maybe_write_sender_header(update.sessionUpdate)
 
-    local lines = vim.split(text, "\n", { plain = true })
+    local lines = ChatTable.render(
+        vim.split(text, "\n", { plain = true }),
+        self:_table_width(),
+        false,
+        true
+    )
 
     BufHelpers.with_modifiable(self.bufnr, function()
         self:_append_lines(lines)
@@ -220,6 +229,9 @@ function MessageWriter:write_message_chunk(update)
     -- Clear thinking state when leaving a thinking block
     if not is_thought then
         self:_clear_thinking_state()
+    end
+    if update.sessionUpdate ~= "agent_message_chunk" then
+        self:_flush_streamed_tables()
     end
 
     -- Prepend emoji on first thought chunk of a block
@@ -286,6 +298,15 @@ function MessageWriter:write_message_chunk(update)
             return false
         end
 
+        if update.sessionUpdate == "agent_message_chunk" then
+            if not self._table_scan_row then
+                self._table_scan_row = last_line
+                    + (text:sub(1, 1) == "\n" and 1 or 0)
+                self._table_in_fence = false
+            end
+            self:_render_streamed_tables(false)
+        end
+
         -- Thinking extmark management
         if is_thought then
             if thinking_start then
@@ -332,6 +353,64 @@ function MessageWriter:_append_lines(lines)
     if not success then
         Logger.debug("Failed to append lines to buffer", err, lines)
     end
+end
+
+--- @return integer width
+function MessageWriter:_table_width()
+    local winid = BufHelpers.find_visible_win(self.bufnr)
+    local info = winid and vim.fn.getwininfo(winid)[1]
+    if info then
+        return info.width - info.textoff
+    end
+    -- ponytail: hidden chat has no width; tables do not reflow on resize
+    return 80
+end
+
+--- Aligns tables in the streamed agent text that can no longer grow.
+--- Must run inside `with_modifiable`.
+--- @param final boolean The stream ended, so a trailing table is complete
+function MessageWriter:_render_streamed_tables(final)
+    local start = self._table_scan_row
+    if not start then
+        return
+    end
+    local stop = vim.api.nvim_buf_line_count(self.bufnr)
+    if not final then
+        stop = stop - 1 -- the last line may still grow
+    end
+    if stop <= start then
+        return
+    end
+
+    local lines = vim.api.nvim_buf_get_lines(self.bufnr, start, stop, false)
+    local rendered, consumed, in_fence = ChatTable.render(
+        lines,
+        self:_table_width(),
+        self._table_in_fence,
+        final
+    )
+    if not vim.deep_equal(rendered, vim.list_slice(lines, 1, consumed)) then
+        vim.api.nvim_buf_set_lines(
+            self.bufnr,
+            start,
+            start + consumed,
+            false,
+            rendered
+        )
+    end
+    self._table_scan_row = start + #rendered
+    self._table_in_fence = in_fence
+end
+
+function MessageWriter:_flush_streamed_tables()
+    if not self._table_scan_row then
+        return
+    end
+    BufHelpers.with_modifiable(self.bufnr, function()
+        self:_render_streamed_tables(true)
+    end)
+    self._table_scan_row = nil
+    self._table_in_fence = nil
 end
 
 --- @param cursor_line integer 1-indexed window cursor row
@@ -457,6 +536,7 @@ function MessageWriter:write_tool_call_block(tool_call_block)
 
     self:_clear_thinking_state()
     self:_capture_scroll(self.bufnr)
+    self:_flush_streamed_tables()
     self:_maybe_write_sender_header("tool_call")
 
     BufHelpers.with_modifiable(self.bufnr, function(bufnr)
@@ -1624,6 +1704,8 @@ function MessageWriter:destroy()
     self._last_sender = nil
     self._provider_name = nil
     self._is_restoring = false
+    self._table_scan_row = nil
+    self._table_in_fence = nil
     self:_clear_thinking_state()
 end
 

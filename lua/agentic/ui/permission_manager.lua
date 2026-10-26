@@ -1,6 +1,5 @@
 local BufHelpers = require("agentic.utils.buf_helpers")
 local Config = require("agentic.config")
-local ChatNavigation = require("agentic.ui.chat_navigation")
 local Logger = require("agentic.utils.logger")
 local WidgetRegistry = require("agentic.ui.widget_registry")
 
@@ -388,14 +387,6 @@ end
 --- @param pending agentic.ui.PermissionManager.PermissionRequest
 --- @protected
 function PermissionManager:_install_focus_keymaps(pending)
-    local bufnr = self.message_writer.bufnr
-    local fallbacks = {}
-    local mappings = vim.api.nvim_buf_get_keymap(bufnr, "n")
-    for _, mapping in ipairs(mappings) do
-        if mapping.expr == 1 and mapping.callback then
-            fallbacks[mapping.lhs] = mapping.callback
-        end
-    end
     --- @param fallback_keys string
     --- @param action fun()
     --- @return fun(): string
@@ -405,13 +396,11 @@ function PermissionManager:_install_focus_keymaps(pending)
                 vim.schedule(action)
                 return ""
             end
-            local fallback = fallbacks[fallback_keys]
-            if fallback then
-                return fallback()
-            end
             return fallback_keys
         end
     end
+
+    local bufnr = self.message_writer.bufnr
 
     for i, opt in ipairs(pending.sorted_options) do
         if i > MAX_DIGIT_KEYS then
@@ -564,7 +553,6 @@ function PermissionManager:_remove_focus_keymaps()
     }) do
         BufHelpers.keymap_del(bufnr, "n", lhs)
     end
-    ChatNavigation.setup_keymaps(bufnr)
 end
 
 function PermissionManager:_scroll_chat_to_bottom()
