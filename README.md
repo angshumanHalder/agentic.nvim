@@ -862,6 +862,8 @@ your setup:
 
       -- Keybindings for chat buffer navigation
       chat = {
+        next_line = "j",
+        prev_line = "k",
         next_heading = "]]",
         prev_heading = "[[",
         next_tool_call = "]t",
@@ -1365,19 +1367,34 @@ correctly without interference from your statusline plugin.
 
 ### Markdown render plugins
 
-Only the `AgenticChat` buffer is properly set as `markdown` and starts
-Treesitter parser, you only need to mention it in your markdown render plugin
-setup.
+The conversation buffer has filetype `AgenticChat`. Native highlighting does
+not align table columns. An optional Markdown renderer can add table alignment;
+include `AgenticChat` in both its file types and its lazy-loading triggers.
 
 ```lua
 {
   "MeanderingProgrammer/render-markdown.nvim",
-  -- ...
+  ft = { "markdown", "AgenticChat" },
   opts = {
-    file_types = { "markdown", "md", "AgenticChat" },
-  }
+    file_types = { "markdown", "AgenticChat" },
+    overrides = {
+      filetype = {
+        AgenticChat = {
+          render_modes = true,
+          anti_conceal = { enabled = false },
+          pipe_table = { enabled = true, cell = "padded" },
+        },
+      },
+    },
+  },
 }
 ```
+
+With `vim.pack`, load the renderer on the `AgenticChat` FileType event as well
+as `markdown`. Disabling `anti_conceal` keeps read-only table rows aligned when
+the cursor enters them. Chat `j`/`k` move through display lines; counted motions
+such as `5j` still move through buffer lines. Configure `keymaps.chat.next_line`
+and `prev_line`, or set either to `{}` to leave its native key untouched.
 
 ### Blink.cmp
 

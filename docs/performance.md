@@ -43,7 +43,7 @@ buffer; this change removes transient copying, not retained conversation data.
 `syntax/AgenticChat.vim` adds selective native syntax for headings, unordered and
 ordered lists, tables, fenced blocks, bold/italic emphasis, and inline code.
 It reuses standard Markdown highlight names. There are no per-line decorations,
-language parsers, renderer dependencies, or new keymaps. Normal `:syntax enable`
+language parsers or renderer dependencies in this syntax layer. Normal `:syntax enable`
 is required; `:setlocal syntax=OFF` disables presentation in the chat buffer.
 
 An intermediate implementation using the complete runtime Markdown syntax took
@@ -120,6 +120,61 @@ are unchanged. The optimized picker retrieves ten pages / 1,000 sessions in
 10.10 ms of mock client work. The baseline takes 1.53 ms but reaches only the
 first page / 100 sessions, so these durations describe different completed work.
 
+## Follow-up: wrapped paragraphs and table alignment
+
+The initial fixture used short lines. User testing exposed paragraph jumps with
+`j`/`k`, despite fast history loading. Inspection of the running chat found
+19,730 buffer lines, wrapping enabled, `smoothscroll` disabled, and no loaded
+Markdown renderer. Treesitter was already active; an isolated copy of the same
+text did not establish Treesitter as the scrolling bottleneck, so it remains
+enabled.
+
+Uncounted `j`/`k` now use display-line motions (`gj`/`gk`). Counted motions such as
+`5j` retain buffer-line movement. Both keys are configurable, including disabling
+the mappings with `{}`. The permission manager preserves these mappings away
+from permission buttons and restores them after approval. Chat windows enable
+native `smoothscroll`, allowing scrolling within a single wrapped paragraph;
+this is Neovim's wrapped-line behavior, not animated scrolling.
+
+Streaming previously treated the last buffer line as near the bottom even if
+hundreds of wrapped screen rows remained below the cursor. The writer now checks
+remaining screen height when the cursor is near the buffer's end. A regression
+keeps the reader at column 500 during a chunk append; reverting the fix moves
+the cursor to column 8,338.
+
+The benchmark now includes 1,000 long paragraphs in a 48-column chat panel and
+100 actual mapped `j` inputs, each followed by a redraw. Raw follow-up samples,
+including the original load, stream, switch and pagination workloads, are in
+[wrapped-navigation.json](benchmarks/wrapped-navigation.json). The comparison
+baseline is `5fd05cb`, which already includes the first performance changes.
+
+| Measurement                                   | Before | After |
+| --------------------------------------------- | -----: | ----: |
+| First `j`: buffer row, byte column            |   2, 0 | 1, 46 |
+| 100 `j` inputs, median total ms               | 101.16 | 65.37 |
+| Slowest individual input across five runs, ms |   1.26 |  1.18 |
+
+These motions travel different distances: the primary result is removal of
+paragraph jumps, not an equal-distance speedup claim. Timing excludes terminal
+painting, user key-repeat settings, and optional renderer work. The initial
+short-line results above remain the historical measurements of the first changes.
+
+Native syntax colors table markers but does not lay out columns. The user's
+existing optional `render-markdown.nvim` was configured for `AgenticChat`, but
+its lazy-loading trigger only matched `markdown`. The local Neovim configuration
+now loads it for either file type and enables only table decorations in chat.
+Disabling chat `anti_conceal` prevents rows from reverting to raw text under the
+cursor. No dependency was added to the plugin. README and help examples show the
+optional integration.
+
+A local integration self-check (`~/.config/tests/agentic_tables.lua`) verifies
+that opening chat loads the renderer, unequal cells receive inline padding,
+decorations stay stable when the cursor enters a row, source text is unchanged,
+and output/prompt editability is preserved. It uses synthetic text and the
+already installed renderer and parsers. Wide tables can still wrap in a narrow
+panel; there is no new table-cell wrapping engine. Renderer performance on very
+large table-heavy conversations was not benchmarked.
+
 ## Provider behavior and limits
 
 Claude Code (`claude-acp` / `claude-agent-acp`), Codex (`codex-acp`) and Gemini
@@ -160,12 +215,14 @@ and [session-load specification](https://agentclientprotocol.com/protocol/v1/ses
 Regression coverage includes opaque cursors, on-demand fetching, empty pages,
 duplicate IDs, repeated cursors, failed-page retries, malformed responses,
 unsupported capabilities, full-ID restoration, unchanged streaming prefixes,
-read-only output, editable input, and Markdown token highlighting. Existing
+read-only output, editable input, Markdown token highlighting, wrapped-line navigation,
+configurable/count-preserving motions, permission-map restoration, and streaming
+scroll preservation. Existing
 restoration, permission, diff, model/provider switching, and session lifecycle
 tests are also run. Reverting each production fix makes its regression fail.
 
 `make validate SELENE=/private/tmp/agentic-tools/selene` runs formatting, LuaLS,
 Selene, the full test suite, and rule checks. The explicit Selene path is only a
 local tool override; no dependency or tooling configuration was changed.
-All five checks passed, including 1,414 tests across 63 groups. Self-review
+All five checks passed, including 1,419 tests across 63 groups. Self-review
 found no remaining issues or rule gaps.

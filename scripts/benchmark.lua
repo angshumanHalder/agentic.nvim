@@ -192,6 +192,47 @@ for _, count in ipairs({ 100, 500, 1000 }) do
     end
     results.session_switch[tostring(count)] = samples
 end
+local wrapped_widget = ChatWidget:new(function()
+    return true
+end)
+local wrapped_buf = wrapped_widget.buf_nrs.chat
+require("agentic.utils.buf_helpers").with_modifiable(wrapped_buf, function()
+    local lines = {}
+    for i = 1, 1000 do
+        lines[i] = string.rep("wrapped paragraph text ", 150) .. i
+    end
+    vim.api.nvim_buf_set_lines(wrapped_buf, 0, -1, false, lines)
+end)
+wrapped_widget:show({ focus_prompt = false })
+local wrapped_win = wrapped_widget.win_nrs.chat
+vim.api.nvim_set_current_win(wrapped_win)
+vim.cmd("normal! gg0")
+vim.api.nvim_feedkeys("j", "xt", false)
+results.wrapped_navigation = {
+    width = vim.api.nvim_win_get_width(wrapped_win),
+    smoothscroll = vim.wo[wrapped_win].smoothscroll,
+    first_j_cursor = vim.api.nvim_win_get_cursor(wrapped_win),
+    samples = {},
+}
+for run = 1, 5 do
+    vim.cmd("normal! gg0")
+    local worst_ms = 0
+    local elapsed = timed(function()
+        for _ = 1, 100 do
+            local step = vim.uv.hrtime()
+            vim.api.nvim_feedkeys("j", "xt", false)
+            vim.cmd("redraw")
+            worst_ms = math.max(worst_ms, (vim.uv.hrtime() - step) / 1e6)
+        end
+    end)
+    results.wrapped_navigation.samples[run] =
+        { total_ms = elapsed, worst_ms = worst_ms }
+end
+assert(
+    vim.bo[wrapped_buf].modifiable == false,
+    "Scrolling made output editable"
+)
+wrapped_widget:destroy()
 local ACPClient = require("agentic.acp.acp_client")
 local agent = setmetatable({
     agent_capabilities = {

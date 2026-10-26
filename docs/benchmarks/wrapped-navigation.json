@@ -1,0 +1,526 @@
+{
+  "baseline_commit": "5fd05cb",
+  "nvim": {
+    "api_prerelease": false,
+    "api_compatible": 0,
+    "major": 0,
+    "minor": 12,
+    "patch": 5,
+    "build": null,
+    "api_level": 14
+  },
+  "before": {
+    "session_switch": {
+      "100": [
+        7.105958,
+        6.733167,
+        7.153417,
+        7.166875,
+        7.0335
+      ],
+      "1000": [
+        8.290083,
+        8.421916,
+        8.535334,
+        8.498292,
+        9.016541
+      ],
+      "500": [
+        7.89475,
+        7.952,
+        7.834083,
+        7.893208,
+        8.662625
+      ]
+    },
+    "workloads": {
+      "100": [
+        {
+          "scroll_100_ms": 8.062584,
+          "stream_1000_ms": 48.834166,
+          "switch_100_ms": 42.162541,
+          "copied_lines": 31,
+          "line_writes": 310,
+          "extmark_writes": 40,
+          "lua_kib": 1298.8427734375,
+          "rss_bytes": 8520160,
+          "buffer_bytes": 18330,
+          "load_ms": 2.455833
+        },
+        {
+          "scroll_100_ms": 8.058166,
+          "stream_1000_ms": 49.004917,
+          "switch_100_ms": 41.852791,
+          "copied_lines": 31,
+          "line_writes": 310,
+          "extmark_writes": 40,
+          "lua_kib": 1299.3037109375,
+          "rss_bytes": 8520160,
+          "buffer_bytes": 18330,
+          "load_ms": 2.323417
+        },
+        {
+          "scroll_100_ms": 7.987625,
+          "stream_1000_ms": 48.838084,
+          "switch_100_ms": 42.440792,
+          "copied_lines": 31,
+          "line_writes": 310,
+          "extmark_writes": 40,
+          "lua_kib": 1299.7412109375,
+          "rss_bytes": 8536544,
+          "buffer_bytes": 18330,
+          "load_ms": 2.249
+        },
+        {
+          "scroll_100_ms": 8.563209,
+          "stream_1000_ms": 52.584375,
+          "switch_100_ms": 42.613,
+          "copied_lines": 31,
+          "line_writes": 310,
+          "extmark_writes": 40,
+          "lua_kib": 1300.1943359375,
+          "rss_bytes": 8585696,
+          "buffer_bytes": 18330,
+          "load_ms": 2.411042
+        },
+        {
+          "scroll_100_ms": 8.263958,
+          "stream_1000_ms": 49.673959,
+          "switch_100_ms": 42.430916,
+          "copied_lines": 31,
+          "line_writes": 310,
+          "extmark_writes": 40,
+          "lua_kib": 1302.7021484375,
+          "rss_bytes": 8634848,
+          "buffer_bytes": 18330,
+          "load_ms": 2.49975
+        }
+      ],
+      "1000": [
+        {
+          "scroll_100_ms": 26.729125,
+          "stream_1000_ms": 50.354875,
+          "switch_100_ms": 42.938917,
+          "copied_lines": 301,
+          "line_writes": 3100,
+          "extmark_writes": 400,
+          "lua_kib": 1482.7958984375,
+          "rss_bytes": 9912800,
+          "buffer_bytes": 129300,
+          "load_ms": 20.68225
+        },
+        {
+          "scroll_100_ms": 26.8055,
+          "stream_1000_ms": 50.548708,
+          "switch_100_ms": 43.040375,
+          "copied_lines": 301,
+          "line_writes": 3100,
+          "extmark_writes": 400,
+          "lua_kib": 1485.8974609375,
+          "rss_bytes": 9978336,
+          "buffer_bytes": 129300,
+          "load_ms": 21.18725
+        },
+        {
+          "scroll_100_ms": 26.721542,
+          "stream_1000_ms": 50.829167,
+          "switch_100_ms": 43.173083,
+          "copied_lines": 301,
+          "line_writes": 3100,
+          "extmark_writes": 400,
+          "lua_kib": 1486.5810546875,
+          "rss_bytes": 9978336,
+          "buffer_bytes": 129300,
+          "load_ms": 20.61425
+        },
+        {
+          "scroll_100_ms": 26.876834,
+          "stream_1000_ms": 49.923041,
+          "switch_100_ms": 43.307708,
+          "copied_lines": 301,
+          "line_writes": 3100,
+          "extmark_writes": 400,
+          "lua_kib": 1487.0341796875,
+          "rss_bytes": 9978336,
+          "buffer_bytes": 129300,
+          "load_ms": 20.645208
+        },
+        {
+          "scroll_100_ms": 26.822334,
+          "stream_1000_ms": 49.838625,
+          "switch_100_ms": 42.978541,
+          "copied_lines": 301,
+          "line_writes": 3100,
+          "extmark_writes": 400,
+          "lua_kib": 1487.4716796875,
+          "rss_bytes": 9978336,
+          "buffer_bytes": 129300,
+          "load_ms": 20.299833
+        }
+      ],
+      "500": [
+        {
+          "scroll_100_ms": 23.411209,
+          "stream_1000_ms": 49.467584,
+          "switch_100_ms": 43.043375,
+          "copied_lines": 151,
+          "line_writes": 1550,
+          "extmark_writes": 200,
+          "lua_kib": 1383.3779296875,
+          "rss_bytes": 9290208,
+          "buffer_bytes": 67650,
+          "load_ms": 10.647333
+        },
+        {
+          "scroll_100_ms": 23.199209,
+          "stream_1000_ms": 50.8725,
+          "switch_100_ms": 42.899667,
+          "copied_lines": 151,
+          "line_writes": 1550,
+          "extmark_writes": 200,
+          "lua_kib": 1384.0888671875,
+          "rss_bytes": 9322976,
+          "buffer_bytes": 67650,
+          "load_ms": 10.820167
+        },
+        {
+          "scroll_100_ms": 23.248667,
+          "stream_1000_ms": 49.421709,
+          "switch_100_ms": 42.754625,
+          "copied_lines": 151,
+          "line_writes": 1550,
+          "extmark_writes": 200,
+          "lua_kib": 1384.5263671875,
+          "rss_bytes": 9339360,
+          "buffer_bytes": 67650,
+          "load_ms": 10.448334
+        },
+        {
+          "scroll_100_ms": 23.417958,
+          "stream_1000_ms": 49.631208,
+          "switch_100_ms": 42.897959,
+          "copied_lines": 151,
+          "line_writes": 1550,
+          "extmark_writes": 200,
+          "lua_kib": 1384.9794921875,
+          "rss_bytes": 9339360,
+          "buffer_bytes": 67650,
+          "load_ms": 10.382708
+        },
+        {
+          "scroll_100_ms": 23.298792,
+          "stream_1000_ms": 49.236625,
+          "switch_100_ms": 42.990375,
+          "copied_lines": 151,
+          "line_writes": 1550,
+          "extmark_writes": 200,
+          "lua_kib": 1386.5771484375,
+          "rss_bytes": 9339360,
+          "buffer_bytes": 67650,
+          "load_ms": 10.296334
+        }
+      ]
+    },
+    "wrapped_navigation": {
+      "width": 48,
+      "smoothscroll": false,
+      "first_j_cursor": [
+        2,
+        0
+      ],
+      "samples": [
+        {
+          "total_ms": 102.375209,
+          "worst_ms": 1.261709
+        },
+        {
+          "total_ms": 100.971792,
+          "worst_ms": 1.066042
+        },
+        {
+          "total_ms": 101.012125,
+          "worst_ms": 1.103291
+        },
+        {
+          "total_ms": 101.63125,
+          "worst_ms": 1.074667
+        },
+        {
+          "total_ms": 101.156083,
+          "worst_ms": 1.078333
+        }
+      ]
+    },
+    "pagination": {
+      "pages": 10,
+      "sessions": 1000,
+      "elapsed_ms": 12.107875
+    },
+    "nvim": {
+      "api_compatible": 0,
+      "major": 0,
+      "minor": 12,
+      "patch": 5,
+      "build": null,
+      "api_level": 14,
+      "api_prerelease": false
+    }
+  },
+  "after": {
+    "pagination": {
+      "pages": 10,
+      "elapsed_ms": 10.323125,
+      "sessions": 1000
+    },
+    "nvim": {
+      "api_prerelease": false,
+      "api_compatible": 0,
+      "major": 0,
+      "minor": 12,
+      "patch": 5,
+      "build": null,
+      "api_level": 14
+    },
+    "workloads": {
+      "500": [
+        {
+          "scroll_100_ms": 22.537042,
+          "load_ms": 10.652208,
+          "switch_100_ms": 41.452542,
+          "copied_lines": 151,
+          "line_writes": 1550,
+          "extmark_writes": 200,
+          "lua_kib": 1386.08203125,
+          "rss_bytes": 9257440,
+          "buffer_bytes": 67650,
+          "stream_1000_ms": 39.169417
+        },
+        {
+          "scroll_100_ms": 24.16175,
+          "load_ms": 10.75625,
+          "switch_100_ms": 41.278958,
+          "copied_lines": 151,
+          "line_writes": 1550,
+          "extmark_writes": 200,
+          "lua_kib": 1388.39453125,
+          "rss_bytes": 9290208,
+          "buffer_bytes": 67650,
+          "stream_1000_ms": 40.885708
+        },
+        {
+          "scroll_100_ms": 22.453625,
+          "load_ms": 10.401959,
+          "switch_100_ms": 40.816,
+          "copied_lines": 151,
+          "line_writes": 1550,
+          "extmark_writes": 200,
+          "lua_kib": 1389.71484375,
+          "rss_bytes": 9322976,
+          "buffer_bytes": 67650,
+          "stream_1000_ms": 38.863792
+        },
+        {
+          "scroll_100_ms": 22.471667,
+          "load_ms": 10.128458,
+          "switch_100_ms": 40.772666,
+          "copied_lines": 151,
+          "line_writes": 1550,
+          "extmark_writes": 200,
+          "lua_kib": 1390.16796875,
+          "rss_bytes": 9322976,
+          "buffer_bytes": 67650,
+          "stream_1000_ms": 38.970917
+        },
+        {
+          "scroll_100_ms": 22.277708,
+          "load_ms": 10.203416,
+          "switch_100_ms": 40.825208,
+          "copied_lines": 151,
+          "line_writes": 1550,
+          "extmark_writes": 200,
+          "lua_kib": 1390.99609375,
+          "rss_bytes": 9322976,
+          "buffer_bytes": 67650,
+          "stream_1000_ms": 39.03475
+        }
+      ],
+      "1000": [
+        {
+          "scroll_100_ms": 25.541583,
+          "load_ms": 20.9685,
+          "switch_100_ms": 41.144708,
+          "copied_lines": 301,
+          "line_writes": 3100,
+          "extmark_writes": 400,
+          "lua_kib": 1487.23046875,
+          "rss_bytes": 9912800,
+          "buffer_bytes": 129300,
+          "stream_1000_ms": 39.362333
+        },
+        {
+          "scroll_100_ms": 25.994333,
+          "load_ms": 20.937292,
+          "switch_100_ms": 41.634791,
+          "copied_lines": 301,
+          "line_writes": 3100,
+          "extmark_writes": 400,
+          "lua_kib": 1487.69140625,
+          "rss_bytes": 9945568,
+          "buffer_bytes": 129300,
+          "stream_1000_ms": 40.013875
+        },
+        {
+          "scroll_100_ms": 25.5425,
+          "load_ms": 21.228916,
+          "switch_100_ms": 41.644167,
+          "copied_lines": 301,
+          "line_writes": 3100,
+          "extmark_writes": 400,
+          "lua_kib": 1488.12890625,
+          "rss_bytes": 9945568,
+          "buffer_bytes": 129300,
+          "stream_1000_ms": 39.840834
+        },
+        {
+          "scroll_100_ms": 25.62825,
+          "load_ms": 21.032958,
+          "switch_100_ms": 41.834459,
+          "copied_lines": 301,
+          "line_writes": 3100,
+          "extmark_writes": 400,
+          "lua_kib": 1489.765625,
+          "rss_bytes": 9961952,
+          "buffer_bytes": 129300,
+          "stream_1000_ms": 40.087834
+        },
+        {
+          "scroll_100_ms": 25.583,
+          "load_ms": 21.077792,
+          "switch_100_ms": 41.843542,
+          "copied_lines": 301,
+          "line_writes": 3100,
+          "extmark_writes": 400,
+          "lua_kib": 1490.203125,
+          "rss_bytes": 9961952,
+          "buffer_bytes": 129300,
+          "stream_1000_ms": 39.89225
+        }
+      ],
+      "100": [
+        {
+          "scroll_100_ms": 7.788542,
+          "load_ms": 2.284541,
+          "switch_100_ms": 40.372,
+          "copied_lines": 31,
+          "line_writes": 310,
+          "extmark_writes": 40,
+          "lua_kib": 1295.46875,
+          "rss_bytes": 8552928,
+          "buffer_bytes": 18330,
+          "stream_1000_ms": 38.904708
+        },
+        {
+          "scroll_100_ms": 7.973625,
+          "load_ms": 2.307625,
+          "switch_100_ms": 40.197166,
+          "copied_lines": 31,
+          "line_writes": 310,
+          "extmark_writes": 40,
+          "lua_kib": 1296.1796875,
+          "rss_bytes": 8552928,
+          "buffer_bytes": 18330,
+          "stream_1000_ms": 38.311541
+        },
+        {
+          "scroll_100_ms": 7.717708,
+          "load_ms": 2.26075,
+          "switch_100_ms": 40.622917,
+          "copied_lines": 31,
+          "line_writes": 310,
+          "extmark_writes": 40,
+          "lua_kib": 1297.1484375,
+          "rss_bytes": 8552928,
+          "buffer_bytes": 18330,
+          "stream_1000_ms": 38.790166
+        },
+        {
+          "scroll_100_ms": 7.776875,
+          "load_ms": 2.318125,
+          "switch_100_ms": 43.049541,
+          "copied_lines": 31,
+          "line_writes": 310,
+          "extmark_writes": 40,
+          "lua_kib": 1300.55078125,
+          "rss_bytes": 8602080,
+          "buffer_bytes": 18330,
+          "stream_1000_ms": 39.006792
+        },
+        {
+          "scroll_100_ms": 8.328166,
+          "load_ms": 2.441834,
+          "switch_100_ms": 41.024084,
+          "copied_lines": 31,
+          "line_writes": 310,
+          "extmark_writes": 40,
+          "lua_kib": 1303.6953125,
+          "rss_bytes": 8618464,
+          "buffer_bytes": 18330,
+          "stream_1000_ms": 39.968541
+        }
+      ]
+    },
+    "wrapped_navigation": {
+      "smoothscroll": true,
+      "first_j_cursor": [
+        1,
+        46
+      ],
+      "samples": [
+        {
+          "worst_ms": 1.179959,
+          "total_ms": 65.576125
+        },
+        {
+          "worst_ms": 1.148042,
+          "total_ms": 65.403542
+        },
+        {
+          "worst_ms": 1.179625,
+          "total_ms": 65.114458
+        },
+        {
+          "worst_ms": 1.17825,
+          "total_ms": 65.142
+        },
+        {
+          "worst_ms": 1.177667,
+          "total_ms": 65.372666
+        }
+      ],
+      "width": 48
+    },
+    "session_switch": {
+      "500": [
+        6.865458,
+        7.033917,
+        7.097292,
+        7.316541,
+        7.494334
+      ],
+      "1000": [
+        8.297375,
+        8.15975,
+        8.172584,
+        8.832834,
+        8.393375
+      ],
+      "100": [
+        6.783,
+        6.378208,
+        6.642375,
+        6.615792,
+        6.671083
+      ]
+    }
+  }
+}

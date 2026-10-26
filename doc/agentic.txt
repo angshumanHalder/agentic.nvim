@@ -664,12 +664,19 @@ These keybindings are automatically set in Agentic buffers:
   <localLeader>D         n       Destroy the current session
   q                      n       Hide chat widget (session keeps running)
   d                      n/v     Remove file/selection/diagnostic
+  j / k                  n       Next / previous display line in chat
   ]]                     n       Next chat heading
   [[                     n       Previous chat heading
   ]t                     n       Next tool call
   [t                     n       Previous tool call
   ]c                     n       Next diff hunk
   [c                     n       Previous diff hunk
+
+Uncounted j/k move through wrapped display lines. Counted motions such as
+5j retain buffer-line movement. These bindings use keymaps.chat.next_line
+and prev_line; set either to {} to keep Neovim's native key behavior.
+The chat uses native smoothscroll; override through
+windows.chat.win_opts.smoothscroll if needed.
 
 Permission keymaps (active while a permission request is pending):
 
@@ -717,6 +724,8 @@ Override default keybindings via the `keymaps` config option:
         },
       },
       chat = {
+        next_line = "j",
+        prev_line = "k",
         next_heading = "]]",
         prev_heading = "[[",
         next_tool_call = "]t",
@@ -1213,12 +1222,23 @@ Disable lualine in Agentic windows to prevent conflicts:
                                           *agentic-render-markdown*
 render-markdown.nvim ~
 
-Add `AgenticChat` to the file types:
+Add `AgenticChat` to the file types and lazy-loading triggers. Native syntax
+colors table markers but does not align columns:
 >lua
   {
     "MeanderingProgrammer/render-markdown.nvim",
+    ft = { "markdown", "AgenticChat" },
     opts = {
-      file_types = { "markdown", "md", "AgenticChat" },
+      file_types = { "markdown", "AgenticChat" },
+      overrides = {
+        filetype = {
+          AgenticChat = {
+            render_modes = true,
+            anti_conceal = { enabled = false },
+            pipe_table = { enabled = true, cell = "padded" },
+          },
+        },
+      },
     },
   }
 <
