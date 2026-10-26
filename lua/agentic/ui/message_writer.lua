@@ -312,7 +312,13 @@ end
 
 --- @param lines string[]
 function MessageWriter:_append_lines(lines)
-    local start_line = BufHelpers.is_buffer_empty(self.bufnr) and 0 or -1
+    local start_line = -1
+    if
+        vim.api.nvim_buf_line_count(self.bufnr) == 1
+        and BufHelpers.is_buffer_empty(self.bufnr)
+    then
+        start_line = 0
+    end
 
     local success, err = pcall(
         vim.api.nvim_buf_set_lines,

@@ -54,6 +54,58 @@ describe("agentic.ui.MessageWriter", function()
         end
     end)
 
+    it("appends without copying unchanged history", function()
+        local lines = {}
+        for i = 1, 1000 do
+            lines[i] = "existing " .. i
+        end
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+        local reads = spy.on(vim.api, "nvim_buf_get_lines")
+        writer:write_message({
+            sessionUpdate = "agent_message_chunk",
+            content = { type = "text", text = "new message" },
+        })
+        reads:revert()
+        local copied = 0
+        for _, call in ipairs(reads.calls) do
+            if call[2] == 0 and call[3] == -1 then
+                copied = copied + 1
+            end
+        end
+        assert.equal(0, copied)
+        assert.equal(
+            "existing 1",
+            vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1]
+        )
+        assert.equal(
+            "new message",
+            vim.api.nvim_buf_get_lines(bufnr, -3, -2, false)[1]
+        )
+    end)
+
+    it("streams ordered chunks without rewriting earlier messages", function()
+        writer:write_restoring_message({
+            sessionUpdate = "user_message_chunk",
+            content = { type = "text", text = "old question" },
+        })
+        local prefix = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        vim.bo[bufnr].modifiable = false
+        for _, text in ipairs({ "first", " second", "\nthird" }) do
+            writer:write_message_chunk({
+                sessionUpdate = "agent_message_chunk",
+                content = { type = "text", text = text },
+            })
+        end
+        assert.equal(
+            prefix,
+            vim.api.nvim_buf_get_lines(bufnr, 0, #prefix, false)
+        )
+        local output =
+            table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
+        assert.is_not_nil(output:find("first second\nthird", 1, true))
+        assert.is_false(vim.bo[bufnr].modifiable)
+    end)
+
     --- @param line_count integer
     --- @param cursor_line integer
     local function setup_buffer(line_count, cursor_line)
