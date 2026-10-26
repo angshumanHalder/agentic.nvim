@@ -161,19 +161,66 @@ short-line results above remain the historical measurements of the first changes
 
 Native syntax colors table markers but does not lay out columns. The user's
 existing optional `render-markdown.nvim` was configured for `AgenticChat`, but
-its lazy-loading trigger only matched `markdown`. The local Neovim configuration
-now loads it for either file type and enables only table decorations in chat.
+its lazy-loading trigger only matched `markdown`. The local Neovim configuration initially
+loaded it for either file type and enabled only table decorations in chat.
 Disabling chat `anti_conceal` prevents rows from reverting to raw text under the
 cursor. No dependency was added to the plugin. README and help examples show the
 optional integration.
 
-A local integration self-check (`~/.config/tests/agentic_tables.lua`) verifies
-that opening chat loads the renderer, unequal cells receive inline padding,
-decorations stay stable when the cursor enters a row, source text is unchanged,
-and output/prompt editability is preserved. It uses synthetic text and the
-already installed renderer and parsers. Wide tables can still wrap in a narrow
-panel; there is no new table-cell wrapping engine. Renderer performance on very
-large table-heavy conversations was not benchmarked.
+That earlier integration was superseded by the aligned table view below. Wide
+rows still wrapped in the narrow chat, even with padding extmarks.
+
+## Follow-up: first focus and wide tables
+
+A later report identified a several-second pause on the first `Ctrl-L` switch
+into a restored Codex chat and a table whose columns did not align. The active
+chat had 19,730 lines in a 76-column panel. Inspection found that the optional
+`render-markdown.nvim` renderer was attached. Its table decorations were valid,
+but the seven source rows occupied 23 screen rows: Neovim wrapped each long
+Markdown row independently. The renderer's table was about 130 columns wide,
+so padding extmarks could not align the wrapped rows in that panel.
+
+An isolated Neovim with an attached UI and the same chat text kept in memory
+measured 189 ms for the renderer's first parse. A warmed parse in the running
+Neovim measured 15 ms. A reproducible synthetic fixture with 19,730 lines and
+an attached 192×54 UI gives these five-sample medians:
+
+| First-focus measurement    | Optional renderer on | Optional renderer off |
+| -------------------------- | -------------------: | --------------------: |
+| `Ctrl-L` plus redraw, ms   |                 6.60 |                  6.53 |
+| Delayed renderer parse, ms |               155.52 |                     0 |
+
+Run each variant from the plugin checkout:
+
+```sh
+AGENTIC_RENDER=1 timeout 60 nvim --headless -u NONE -i NONE -l scripts/benchmark_focus.lua
+AGENTIC_RENDER=0 timeout 60 nvim --headless -u NONE -i NONE -l scripts/benchmark_focus.lua
+```
+
+Raw samples:
+[first-focus.json](benchmarks/first-focus.json). The synthetic benchmark is
+independent of ACP startup and terminal painting. It identifies removable
+first-focus work, but did not reproduce the several-second pause in the user's
+full interactive session. The local Neovim configuration now loads
+`render-markdown.nvim` for ordinary Markdown only, so restored `AgenticChat`
+buffers avoid that optional parse. The plugin's native selective highlighting
+remains active.
+
+The user chose an aligned table view on demand. `T` on a Markdown pipe table
+opens a read-only, unwrapped floating view; `q` or `<Esc>` closes it. The view
+uses the existing Markdown Treesitter parser only when requested, drops link
+destinations from display, pads columns using terminal cell widths, and leaves
+the conversation source unchanged. Its key is configurable. The exact table
+shown in the report opened as six aligned rows in a 130-column view in 164 ms
+in an isolated run using the restored text in memory. Wider tables can be
+scrolled horizontally with `zl`/`zh`. Inline tables can still wrap in a narrow
+chat; no automatic source reflow was added.
+
+The local integration check (`~/.config/tests/agentic_tables.lua`) now verifies
+that opening chat does not load the optional renderer, that the aligned view
+keeps source and editability intact, and that all column boundaries match. It
+uses synthetic text. The new navigation regression also checks closing and
+wiping the temporary view.
 
 ## Provider behavior and limits
 
@@ -202,7 +249,8 @@ Actual installed provider versions and credentials were not exercised.
   require such work. Existing scroll-preservation and permission tests remain.
 - Markdown is a highlighting subset, not a CommonMark layout engine: no table
   column alignment, nested emphasis guarantees, embedded-language highlighting,
-  or markup concealment. Very long lines and jumps into fences beginning beyond
+  or markup concealment in the chat itself; `T` provides a separate aligned
+  table view. Very long lines and jumps into fences beginning beyond
   the syntax synchronization window can lose highlighting accuracy. Text is
   preserved. Syntax scanning bounds can be adjusted through native options.
 
@@ -224,5 +272,7 @@ tests are also run. Reverting each production fix makes its regression fail.
 `make validate SELENE=/private/tmp/agentic-tools/selene` runs formatting, LuaLS,
 Selene, the full test suite, and rule checks. The explicit Selene path is only a
 local tool override; no dependency or tooling configuration was changed.
-All five checks passed, including 1,419 tests across 63 groups. Self-review
-found no remaining issues or rule gaps.
+`make validate SELENE=/private/tmp/agentic-tools/selene` passed formatting,
+LuaLS, Selene, the full suite (1,421 tests across 63 groups), and rule checks.
+The local table integration check also passed. The Selene path is a local tool
+override; no runtime dependency was added.

@@ -1,0 +1,176 @@
+{
+  "with_renderer": [
+    {
+      "render_parse_ms": [
+        155.305084
+      ],
+      "focus_ms": 6.59775,
+      "nvim": {
+        "major": 0,
+        "api_compatible": 0,
+        "patch": 5,
+        "minor": 12,
+        "api_prerelease": false,
+        "build": null,
+        "api_level": 14
+      },
+      "bytes": 1116567,
+      "renderer": true,
+      "lines": 19730
+    },
+    {
+      "bytes": 1116567,
+      "renderer": true,
+      "render_parse_ms": [
+        155.890875
+      ],
+      "lines": 19730,
+      "focus_ms": 6.784875,
+      "nvim": {
+        "minor": 12,
+        "patch": 5,
+        "api_level": 14,
+        "api_compatible": 0,
+        "build": null,
+        "api_prerelease": false,
+        "major": 0
+      }
+    },
+    {
+      "focus_ms": 6.935583,
+      "nvim": {
+        "api_compatible": 0,
+        "patch": 5,
+        "minor": 12,
+        "api_prerelease": false,
+        "build": null,
+        "api_level": 14,
+        "major": 0
+      },
+      "bytes": 1116567,
+      "renderer": true,
+      "render_parse_ms": [
+        159.431125
+      ],
+      "lines": 19730
+    },
+    {
+      "render_parse_ms": [
+        155.515209
+      ],
+      "nvim": {
+        "major": 0,
+        "api_compatible": 0,
+        "patch": 5,
+        "minor": 12,
+        "api_prerelease": false,
+        "build": null,
+        "api_level": 14
+      },
+      "focus_ms": 6.491917,
+      "lines": 19730,
+      "bytes": 1116567,
+      "renderer": true
+    },
+    {
+      "lines": 19730,
+      "renderer": true,
+      "render_parse_ms": [
+        154.928917
+      ],
+      "bytes": 1116567,
+      "focus_ms": 6.270083,
+      "nvim": {
+        "api_level": 14,
+        "minor": 12,
+        "build": null,
+        "api_compatible": 0,
+        "major": 0,
+        "api_prerelease": false,
+        "patch": 5
+      }
+    }
+  ],
+  "without_renderer": [
+    {
+      "bytes": 1116567,
+      "focus_ms": 6.437834,
+      "nvim": {
+        "api_compatible": 0,
+        "build": null,
+        "major": 0,
+        "minor": 12,
+        "patch": 5,
+        "api_level": 14,
+        "api_prerelease": false
+      },
+      "lines": 19730,
+      "renderer": false,
+      "render_parse_ms": []
+    },
+    {
+      "lines": 19730,
+      "focus_ms": 6.995375,
+      "nvim": {
+        "api_level": 14,
+        "api_prerelease": false,
+        "api_compatible": 0,
+        "build": null,
+        "major": 0,
+        "minor": 12,
+        "patch": 5
+      },
+      "bytes": 1116567,
+      "renderer": false,
+      "render_parse_ms": []
+    },
+    {
+      "renderer": false,
+      "focus_ms": 6.527667,
+      "nvim": {
+        "minor": 12,
+        "patch": 5,
+        "api_level": 14,
+        "api_prerelease": false,
+        "api_compatible": 0,
+        "build": null,
+        "major": 0
+      },
+      "bytes": 1116567,
+      "lines": 19730,
+      "render_parse_ms": []
+    },
+    {
+      "lines": 19730,
+      "focus_ms": 6.802583,
+      "nvim": {
+        "minor": 12,
+        "patch": 5,
+        "api_level": 14,
+        "api_prerelease": false,
+        "api_compatible": 0,
+        "build": null,
+        "major": 0
+      },
+      "bytes": 1116567,
+      "renderer": false,
+      "render_parse_ms": []
+    },
+    {
+      "nvim": {
+        "api_prerelease": false,
+        "build": null,
+        "major": 0,
+        "minor": 12,
+        "patch": 5,
+        "api_compatible": 0,
+        "api_level": 14
+      },
+      "focus_ms": 6.402041,
+      "lines": 19730,
+      "bytes": 1116567,
+      "renderer": false,
+      "render_parse_ms": []
+    }
+  ]
+}
