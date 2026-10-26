@@ -1217,7 +1217,7 @@ Disable lualine in Agentic windows to prevent conflicts:
 render-markdown.nvim ~
 
 Pipe tables are aligned in the chat itself, with cells wrapped to the chat
-width, so no renderer is needed for them. To add decorations, include
+width, and reflow when the chat is resized, so no renderer is needed for them. To add decorations, include
 `AgenticChat` in the renderer's file types and lazy-loading triggers. This can
 slow navigation in long histories:
 >lua

@@ -196,6 +196,58 @@ describe("agentic.ui.MessageWriter", function()
             assert.equal("After text", last)
         end)
 
+        it("reflows aligned tables when the chat width changes", function()
+            writer:write_message({
+                sessionUpdate = "agent_message_chunk",
+                content = { type = "text", text = wide .. "\nAfter" },
+            })
+            local wide_rows = #table_rows()
+            require("agentic.utils.buf_helpers").win_set_width(winid, 30)
+            vim.api.nvim_exec_autocmds("WinResized", {})
+            local rows = table_rows()
+            assert.is_true(#rows > wide_rows)
+            for _, row in ipairs(rows) do
+                assert.equal(bars(rows[1]), bars(row))
+                assert.is_true(vim.fn.strdisplaywidth(row) <= 30)
+            end
+            assert.equal(
+                "After",
+                vim.api.nvim_buf_get_lines(bufnr, -3, -2, false)[1]
+            )
+            require("agentic.utils.buf_helpers").win_set_width(winid, 80)
+            vim.api.nvim_exec_autocmds("WinResized", {})
+            assert.equal(wide_rows, #table_rows())
+        end)
+
+        it("keeps streaming in place after an earlier table reflows", function()
+            chunk(wide .. "\nmiddle\n")
+            require("agentic.utils.buf_helpers").win_set_width(winid, 30)
+            vim.api.nvim_exec_autocmds("WinResized", {})
+            local reflowed = vim.api.nvim_buf_get_lines(bufnr, 0, -2, false)
+            chunk("| a | b |\n|---|---|\n| longer cell | x |\n\nend")
+            writer:write_finish_message({ stopReason = "end_turn" }, nil)
+            assert.equal(
+                reflowed,
+                vim.api.nvim_buf_get_lines(bufnr, 0, #reflowed, false)
+            )
+            local text = table.concat(
+                vim.api.nvim_buf_get_lines(bufnr, 0, -1, false),
+                "\n"
+            )
+            local _, middles = text:gsub("middle", "")
+            assert.equal(1, middles)
+            assert.is_not_nil(text:find("\nend\n", 1, true))
+            local rows = table_rows()
+            local second = {}
+            for _, row in ipairs(rows) do
+                if row:find("longer", 1, true) or row:find(" a ", 1, true) then
+                    second[#second + 1] = row
+                end
+            end
+            assert.equal(2, #second)
+            assert.equal(bars(second[1]), bars(second[2]))
+        end)
+
         it("aligns a streamed table that ends the response", function()
             chunk("| a | b |\n|---|---|\n| longer cell | x |")
             assert.is_false(

@@ -154,10 +154,15 @@ local function split_cells(line)
     return cells
 end
 
+--- @class agentic.ui.ChatTable.Span
+--- @field offset integer 1-based index of the first rendered row
+--- @field height integer Rendered row count
+--- @field source string[] Original Markdown rows
+
 --- @param lines string[] header, delimiter, then body rows
 --- @param width integer
 --- @return string[] lines
-local function render_table(lines, width)
+function ChatTable.layout(lines, width)
     local align = {}
     for index, cell in ipairs(split_cells(lines[2])) do
         local left = cell:sub(1, 1) == ":"
@@ -186,8 +191,11 @@ end
 --- @return string[] rendered Replacement for the first `consumed` lines
 --- @return integer consumed
 --- @return boolean in_fence Fence state after the consumed lines
+--- @return agentic.ui.ChatTable.Span[] spans Rendered tables within `rendered`
 function ChatTable.render(lines, width, in_fence, final)
     local rendered = {}
+    --- @type agentic.ui.ChatTable.Span[]
+    local spans = {}
     local index = 1
     while index <= #lines do
         local line = lines[index]
@@ -203,10 +211,14 @@ function ChatTable.render(lines, width, in_fence, final)
             if lines[stop] == nil and not final then
                 break
             end
-            vim.list_extend(
-                rendered,
-                render_table(vim.list_slice(lines, index, stop - 1), width)
-            )
+            local source = vim.list_slice(lines, index, stop - 1)
+            local table_lines = ChatTable.layout(source, width)
+            spans[#spans + 1] = {
+                offset = #rendered + 1,
+                height = #table_lines,
+                source = source,
+            }
+            vim.list_extend(rendered, table_lines)
             index = stop
         else
             if is_fence then
@@ -217,7 +229,7 @@ function ChatTable.render(lines, width, in_fence, final)
             index = index + 1
         end
     end
-    return rendered, index - 1, in_fence
+    return rendered, index - 1, in_fence, spans
 end
 
 return ChatTable

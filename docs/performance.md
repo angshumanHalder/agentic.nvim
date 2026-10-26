@@ -254,6 +254,13 @@ table is rewritten once a following line completes, or when a tool call, thought
 or finish message ends the stream. An unfinished table is re-read per chunk, so
 the cost is bounded by the table, not the history.
 
+Each rendered table keeps its source rows and a range extmark. On `WinResized`,
+or when the chat buffer enters a window, tables laid out for another width are
+rewritten from source; unchanged widths cost one comparison per table. The
+streaming scan row and thinking rows are shifted to match. With 1,000 small
+tables, a width change reflowed all of them in about 14 ms; a resize that
+leaves the chat width unchanged took 0.02 ms.
+
 With the benchmark fixture (a table in every text message, 900 tables at 1,000
 messages), median load rose from 21.0 ms to 38.9 ms; scrolling (25.5 → 26.8 ms)
 and streaming (39.1 → 40.6 ms) were unchanged within noise. The streaming
@@ -286,8 +293,7 @@ Actual installed provider versions and credentials were not exercised.
   require such work. Existing scroll-preservation and permission tests remain.
 - Markdown is a highlighting subset, not a CommonMark layout engine: no nested
   emphasis guarantees, embedded-language highlighting, or markup concealment.
-  Pipe tables are aligned in the chat at the width current when they complete;
-  they do not reflow on resize. Very long lines and jumps into fences beginning beyond
+  Pipe tables are aligned in the chat and reflow when its width changes. Very long lines and jumps into fences beginning beyond
   the syntax synchronization window can lose highlighting accuracy. Text is
   preserved. Syntax scanning bounds can be adjusted through native options.
 

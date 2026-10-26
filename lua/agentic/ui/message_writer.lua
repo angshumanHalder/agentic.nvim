@@ -15,6 +15,7 @@ local NS_DIFF_HIGHLIGHTS =
     vim.api.nvim_create_namespace("agentic_diff_highlights")
 local NS_STATUS = vim.api.nvim_create_namespace("agentic_status_footer")
 local NS_THINKING = vim.api.nvim_create_namespace("agentic_thinking")
+local NS_TABLES = vim.api.nvim_create_namespace("agentic_tables")
 
 local PERMISSION_OPTION_LABELS = {
     allow_once = "Allow",
@@ -54,6 +55,11 @@ local TITLE_FENCE = "`````"
 --- @field permission? agentic.ui.MessageWriter.PermissionState
 --- @field rendered_button_count? integer Rendered button-row count; lags `permission` state until the next `repaint_status_row`.
 
+--- @class agentic.ui.MessageWriter.RenderedTable
+--- @field extmark_id integer Range extmark over the rendered rows
+--- @field source string[] Original Markdown rows
+--- @field width integer Width the rows were laid out for
+
 --- @class agentic.ui.MessageWriter
 --- @field bufnr integer
 --- @field tool_call_blocks table<string, agentic.ui.MessageWriter.ToolCallBlock>
@@ -68,6 +74,8 @@ local TITLE_FENCE = "`````"
 --- @field _thinking_end_line? integer
 --- @field _table_scan_row? integer First streamed agent row not yet checked for tables
 --- @field _table_in_fence? boolean
+--- @field _tables agentic.ui.MessageWriter.RenderedTable[]
+--- @field _table_augroup integer
 local MessageWriter = {}
 MessageWriter.__index = MessageWriter
 
@@ -85,7 +93,27 @@ function MessageWriter:new(bufnr)
         _should_auto_scroll = nil,
         _scroll_scheduled = false,
         _is_restoring = false,
+        _tables = {},
     }, self)
+
+    -- Tables are laid out for one width; a resized chat needs them reflowed.
+    self._table_augroup = vim.api.nvim_create_augroup(
+        "AgenticChatTables_" .. tostring(bufnr),
+        { clear = true }
+    )
+    vim.api.nvim_create_autocmd("WinResized", {
+        group = self._table_augroup,
+        callback = function()
+            self:reflow_tables()
+        end,
+    })
+    vim.api.nvim_create_autocmd("BufWinEnter", {
+        group = self._table_augroup,
+        buffer = bufnr,
+        callback = function()
+            self:reflow_tables()
+        end,
+    })
 
     return self
 end
@@ -192,16 +220,19 @@ function MessageWriter:write_message(update)
     self:_flush_streamed_tables()
     self:_maybe_write_sender_header(update.sessionUpdate)
 
-    local lines = ChatTable.render(
+    local width = self:_table_width()
+    local lines, _, _, spans = ChatTable.render(
         vim.split(text, "\n", { plain = true }),
-        self:_table_width(),
+        width,
         false,
         true
     )
 
-    BufHelpers.with_modifiable(self.bufnr, function()
+    BufHelpers.with_modifiable(self.bufnr, function(bufnr)
         self:_append_lines(lines)
         self:_append_lines({ "" })
+        local first_row = vim.api.nvim_buf_line_count(bufnr) - #lines - 1
+        self:_record_tables(first_row, spans, width)
     end)
 
     self:_apply_scroll(self.bufnr)
@@ -362,7 +393,7 @@ function MessageWriter:_table_width()
     if info then
         return info.width - info.textoff
     end
-    -- ponytail: hidden chat has no width; tables do not reflow on resize
+    -- Hidden chat has no width; BufWinEnter reflows once it is shown.
     return 80
 end
 
@@ -383,13 +414,10 @@ function MessageWriter:_render_streamed_tables(final)
     end
 
     local lines = vim.api.nvim_buf_get_lines(self.bufnr, start, stop, false)
-    local rendered, consumed, in_fence = ChatTable.render(
-        lines,
-        self:_table_width(),
-        self._table_in_fence,
-        final
-    )
-    if not vim.deep_equal(rendered, vim.list_slice(lines, 1, consumed)) then
+    local width = self:_table_width()
+    local rendered, consumed, in_fence, spans =
+        ChatTable.render(lines, width, self._table_in_fence, final)
+    if #spans > 0 then
         vim.api.nvim_buf_set_lines(
             self.bufnr,
             start,
@@ -397,9 +425,102 @@ function MessageWriter:_render_streamed_tables(final)
             false,
             rendered
         )
+        self:_record_tables(start, spans, width)
     end
     self._table_scan_row = start + #rendered
     self._table_in_fence = in_fence
+end
+
+--- @param first_row integer 0-indexed row of the first rendered line
+--- @param spans agentic.ui.ChatTable.Span[]
+--- @param width integer
+function MessageWriter:_record_tables(first_row, spans, width)
+    for _, span in ipairs(spans) do
+        local start = first_row + span.offset - 1
+        self._tables[#self._tables + 1] = {
+            extmark_id = self:_mark_table(nil, start, span.height),
+            source = span.source,
+            width = width,
+        }
+    end
+end
+
+--- @param id integer|nil
+--- @param start integer
+--- @param height integer
+--- @return integer extmark_id
+function MessageWriter:_mark_table(id, start, height)
+    return vim.api.nvim_buf_set_extmark(self.bufnr, NS_TABLES, start, 0, {
+        id = id,
+        end_row = start + height - 1,
+        invalidate = true,
+    })
+end
+
+--- Lays out again every table rendered for a different chat width.
+function MessageWriter:reflow_tables()
+    if #self._tables == 0 or not vim.api.nvim_buf_is_valid(self.bufnr) then
+        return
+    end
+    local width = self:_table_width()
+    local stale = vim.tbl_filter(function(entry)
+        return entry.width ~= width
+    end, self._tables)
+    if #stale == 0 then
+        return
+    end
+
+    self:_capture_scroll(self.bufnr)
+    BufHelpers.with_modifiable(self.bufnr, function(bufnr)
+        for _, entry in ipairs(stale) do
+            local pos = vim.api.nvim_buf_get_extmark_by_id(
+                bufnr,
+                NS_TABLES,
+                entry.extmark_id,
+                { details = true }
+            )
+            local details = pos[3]
+            if
+                pos[1]
+                and details
+                and details.end_row
+                and not details.invalid
+            then
+                local start = pos[1]
+                local old_height = details.end_row - start + 1
+                local lines = ChatTable.layout(entry.source, width)
+                vim.api.nvim_buf_set_lines(
+                    bufnr,
+                    start,
+                    start + old_height,
+                    false,
+                    lines
+                )
+                self:_mark_table(entry.extmark_id, start, #lines)
+                -- Streaming state holds raw rows; shift those below the table.
+                if self._table_scan_row and self._table_scan_row > start then
+                    self._table_scan_row = self._table_scan_row
+                        + #lines
+                        - old_height
+                end
+            end
+            entry.width = width
+        end
+    end)
+
+    if self._thinking_extmark_id then
+        local pos = vim.api.nvim_buf_get_extmark_by_id(
+            self.bufnr,
+            NS_THINKING,
+            self._thinking_extmark_id,
+            { details = true }
+        )
+        if pos[1] and pos[3] then
+            self._thinking_start_line = pos[1]
+            self._thinking_end_line = pos[3].end_row
+        end
+    end
+    self:_apply_scroll(self.bufnr)
 end
 
 function MessageWriter:_flush_streamed_tables()
@@ -1706,6 +1827,8 @@ function MessageWriter:destroy()
     self._is_restoring = false
     self._table_scan_row = nil
     self._table_in_fence = nil
+    self._tables = {}
+    pcall(vim.api.nvim_del_augroup_by_id, self._table_augroup)
     self:_clear_thinking_state()
 end
 

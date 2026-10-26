@@ -1367,7 +1367,8 @@ correctly without interference from your statusline plugin.
 
 The conversation buffer has filetype `AgenticChat` and uses bounded native
 syntax. Pipe tables are aligned in the chat itself once complete, with cells
-wrapped to the chat width. Tables inside code fences are left as written.
+wrapped to the chat width, and reflow when the chat is resized. Tables inside
+code fences are left as written.
 
 An optional Markdown renderer can add decorations, but can slow navigation in
 long histories. Include `AgenticChat` in both its file types and lazy-loading
