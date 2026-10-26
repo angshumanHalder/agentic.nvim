@@ -678,9 +678,10 @@ Uncounted j/k move through wrapped display lines. Counted motions such as
 and prev_line; set either to {} to keep Neovim's native key behavior.
 The chat uses native smoothscroll; override through
 windows.chat.win_opts.smoothscroll if needed.
-T opens the table under the cursor in a read-only aligned view. q or <Esc>
-closes it; zl/zh scroll wide rows horizontally. Configure the key with
-keymaps.chat.view_table. The conversation buffer is unchanged.
+T opens the table under the cursor in a read-only aligned view. Cells wrap to
+the available width while preserving column alignment. q or <Esc> closes it.
+Configure the key with keymaps.chat.view_table. The conversation buffer is
+unchanged.
 
 Permission keymaps (active while a permission request is pending):
 

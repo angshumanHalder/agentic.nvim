@@ -206,14 +206,13 @@ buffers avoid that optional parse. The plugin's native selective highlighting
 remains active.
 
 The user chose an aligned table view on demand. `T` on a Markdown pipe table
-opens a read-only, unwrapped floating view; `q` or `<Esc>` closes it. The view
-uses the existing Markdown Treesitter parser only when requested, drops link
-destinations from display, pads columns using terminal cell widths, and leaves
-the conversation source unchanged. Its key is configurable. The exact table
-shown in the report opened as six aligned rows in a 130-column view in 164 ms
-in an isolated run using the restored text in memory. Wider tables can be
-scrolled horizontally with `zl`/`zh`. Inline tables can still wrap in a narrow
-chat; no automatic source reflow was added.
+opens a read-only floating view; `q` or `<Esc>` closes it. The view uses the
+existing Markdown Treesitter parser only when requested, drops link destinations
+from display, and leaves the conversation source unchanged. The first version
+opened the exact table in a 130-column view in 164 ms in an isolated run. The
+view now wraps cells to fit the available editor width while keeping columns
+aligned, using the cell-layout approach from `agent-nvim`'s parser experiment.
+The chat buffer still does not reflow its source rows.
 
 The local integration check (`~/.config/tests/agentic_tables.lua`) now verifies
 that opening chat does not load the optional renderer, that the aligned view

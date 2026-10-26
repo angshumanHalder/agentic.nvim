@@ -1370,8 +1370,8 @@ correctly without interference from your statusline plugin.
 
 The conversation buffer has filetype `AgenticChat`. Place the cursor on a pipe
 table and press `T` to open an aligned, read-only table view; press `q` or
-`<Esc>` to return. Long rows stay on one line and can be scrolled horizontally
-with `zl`/`zh`. The source conversation is unchanged. Configure this key with
+`<Esc>` to return. Cells wrap to the available width while preserving column
+alignment. The source conversation is unchanged. Configure this key with
 `keymaps.chat.view_table`.
 
 An optional Markdown renderer can decorate inline tables that fit in the chat
