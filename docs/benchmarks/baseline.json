@@ -1,0 +1,227 @@
+{
+  "workloads": {
+    "100": [
+      {
+        "scroll_100_ms": 2.309125,
+        "load_ms": 7.059375,
+        "switch_100_ms": 21.961583,
+        "copied_lines": 241076,
+        "line_writes": 310,
+        "extmark_writes": 40,
+        "lua_kib": 1284.240234375,
+        "rss_bytes": 8651232,
+        "buffer_bytes": 18330,
+        "stream_1000_ms": 38.446
+      },
+      {
+        "scroll_100_ms": 2.267208,
+        "load_ms": 7.236917,
+        "switch_100_ms": 22.308083,
+        "copied_lines": 241076,
+        "line_writes": 310,
+        "extmark_writes": 40,
+        "lua_kib": 1288.814453125,
+        "rss_bytes": 8684000,
+        "buffer_bytes": 18330,
+        "stream_1000_ms": 38.030208
+      },
+      {
+        "scroll_100_ms": 2.299125,
+        "load_ms": 7.352541,
+        "switch_100_ms": 22.501042,
+        "copied_lines": 241076,
+        "line_writes": 310,
+        "extmark_writes": 40,
+        "lua_kib": 1289.501953125,
+        "rss_bytes": 8700384,
+        "buffer_bytes": 18330,
+        "stream_1000_ms": 38.27225
+      },
+      {
+        "scroll_100_ms": 2.265083,
+        "load_ms": 7.375791,
+        "switch_100_ms": 21.946,
+        "copied_lines": 241076,
+        "line_writes": 310,
+        "extmark_writes": 40,
+        "lua_kib": 1293.951171875,
+        "rss_bytes": 8749536,
+        "buffer_bytes": 18330,
+        "stream_1000_ms": 38.1955
+      },
+      {
+        "scroll_100_ms": 2.296959,
+        "load_ms": 7.18225,
+        "switch_100_ms": 22.013541,
+        "copied_lines": 241076,
+        "line_writes": 310,
+        "extmark_writes": 40,
+        "lua_kib": 1298.380859375,
+        "rss_bytes": 8765920,
+        "buffer_bytes": 18330,
+        "stream_1000_ms": 38.526584
+      }
+    ],
+    "500": [
+      {
+        "scroll_100_ms": 4.877917,
+        "load_ms": 143.113917,
+        "switch_100_ms": 22.014875,
+        "copied_lines": 6010376,
+        "line_writes": 1550,
+        "extmark_writes": 200,
+        "lua_kib": 1378.798828125,
+        "rss_bytes": 10420704,
+        "buffer_bytes": 67650,
+        "stream_1000_ms": 38.64775
+      },
+      {
+        "scroll_100_ms": 5.221833,
+        "load_ms": 144.535667,
+        "switch_100_ms": 22.84225,
+        "copied_lines": 6010376,
+        "line_writes": 1550,
+        "extmark_writes": 200,
+        "lua_kib": 1379.509765625,
+        "rss_bytes": 10437088,
+        "buffer_bytes": 67650,
+        "stream_1000_ms": 40.562333
+      },
+      {
+        "scroll_100_ms": 5.149584,
+        "load_ms": 142.912209,
+        "switch_100_ms": 22.08825,
+        "copied_lines": 6010376,
+        "line_writes": 1550,
+        "extmark_writes": 200,
+        "lua_kib": 1379.947265625,
+        "rss_bytes": 10453472,
+        "buffer_bytes": 67650,
+        "stream_1000_ms": 38.7815
+      },
+      {
+        "scroll_100_ms": 4.898875,
+        "load_ms": 142.717542,
+        "switch_100_ms": 21.917291,
+        "copied_lines": 6010376,
+        "line_writes": 1550,
+        "extmark_writes": 200,
+        "lua_kib": 1380.400390625,
+        "rss_bytes": 10453472,
+        "buffer_bytes": 67650,
+        "stream_1000_ms": 38.631167
+      },
+      {
+        "scroll_100_ms": 4.905208,
+        "load_ms": 143.008833,
+        "switch_100_ms": 21.916875,
+        "copied_lines": 6010376,
+        "line_writes": 1550,
+        "extmark_writes": 200,
+        "lua_kib": 1381.033203125,
+        "rss_bytes": 10453472,
+        "buffer_bytes": 67650,
+        "stream_1000_ms": 38.606917
+      }
+    ],
+    "1000": [
+      {
+        "scroll_100_ms": 5.02125,
+        "load_ms": 549.914833,
+        "switch_100_ms": 22.085917,
+        "copied_lines": 24033251,
+        "line_writes": 3100,
+        "extmark_writes": 400,
+        "lua_kib": 1475.568359375,
+        "rss_bytes": 9732576,
+        "buffer_bytes": 129300,
+        "stream_1000_ms": 38.572334
+      },
+      {
+        "scroll_100_ms": 5.194208,
+        "load_ms": 550.461375,
+        "switch_100_ms": 22.158333,
+        "copied_lines": 24033251,
+        "line_writes": 3100,
+        "extmark_writes": 400,
+        "lua_kib": 1480.576171875,
+        "rss_bytes": 9732576,
+        "buffer_bytes": 129300,
+        "stream_1000_ms": 39.226666
+      },
+      {
+        "scroll_100_ms": 4.886125,
+        "load_ms": 548.958666,
+        "switch_100_ms": 22.050292,
+        "copied_lines": 24033251,
+        "line_writes": 3100,
+        "extmark_writes": 400,
+        "lua_kib": 1481.013671875,
+        "rss_bytes": 9667040,
+        "buffer_bytes": 129300,
+        "stream_1000_ms": 39.23675
+      },
+      {
+        "scroll_100_ms": 5.214625,
+        "load_ms": 549.770875,
+        "switch_100_ms": 22.07825,
+        "copied_lines": 24033251,
+        "line_writes": 3100,
+        "extmark_writes": 400,
+        "lua_kib": 1481.466796875,
+        "rss_bytes": 9683448,
+        "buffer_bytes": 129300,
+        "stream_1000_ms": 38.991208
+      },
+      {
+        "scroll_100_ms": 4.967792,
+        "load_ms": 549.421666,
+        "switch_100_ms": 22.4125,
+        "copied_lines": 24033251,
+        "line_writes": 3100,
+        "extmark_writes": 400,
+        "lua_kib": 1482.830078125,
+        "rss_bytes": 9683448,
+        "buffer_bytes": 129300,
+        "stream_1000_ms": 38.761417
+      }
+    ]
+  },
+  "pagination": {
+    "elapsed_ms": 1.525459,
+    "pages": 1,
+    "sessions": 100
+  },
+  "session_switch": {
+    "100": [
+      6.1165,
+      5.418833,
+      5.334458,
+      5.481666,
+      5.577209
+    ],
+    "500": [
+      5.938583,
+      6.132542,
+      6.230417,
+      6.465292,
+      6.287917
+    ],
+    "1000": [
+      6.461875,
+      6.815084,
+      6.875583,
+      6.983958,
+      7.119791
+    ]
+  },
+  "nvim": {
+    "minor": 12,
+    "patch": 5,
+    "build": null,
+    "api_level": 14,
+    "api_prerelease": false,
+    "api_compatible": 0,
+    "major": 0
+  }
+}
