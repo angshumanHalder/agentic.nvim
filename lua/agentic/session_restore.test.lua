@@ -94,6 +94,94 @@ describe("SessionRestore", function()
         package.loaded["agentic.session_restore"] = nil
     end)
 
+    it("loads more on demand, retaining prior sessions and full IDs", function()
+        local agent = new_agent()
+        local cursors = {}
+        function agent:list_sessions(_cwd, callback, cursor)
+            cursors[#cursors + 1] = cursor or "first"
+            if cursor then
+                callback({
+                    sessions = {
+                        { sessionId = "old-full-id", title = "Old" },
+                        { sessionId = "recent-full-id", title = "Duplicate" },
+                    },
+                })
+            else
+                callback({
+                    sessions = {
+                        { sessionId = "recent-full-id", title = "Recent" },
+                    },
+                    nextCursor = "opaque+/==",
+                })
+            end
+        end
+        local items, choose
+        select_stub:invokes(function(values, _opts, callback)
+            items, choose = values, callback
+        end)
+        use_context(agent, nil)
+        SessionRestore.show_picker()
+        agent.ready_callback(agent)
+        assert.equal({ "first" }, cursors)
+        assert.equal(2, #items)
+        choose(items[2])
+        assert.equal({ "first", "opaque+/==" }, cursors)
+        assert.equal(2, #items)
+        choose(items[2])
+        assert.equal("old-full-id", replace_stub.calls[1][3].session_id)
+    end)
+
+    it("offers another page even when the first page is empty", function()
+        local agent = new_agent()
+        agent.list_result = { sessions = {}, nextCursor = "next" }
+        use_context(agent, nil)
+        SessionRestore.show_picker()
+        agent.ready_callback(agent)
+        assert.spy(select_stub).was.called(1)
+        assert.spy(notify_stub).was.called(0)
+    end)
+
+    it("keeps partial results and retries a failed next page", function()
+        local agent = new_agent()
+        agent.list_result =
+            { sessions = { { sessionId = "one" } }, nextCursor = "next" }
+        local items, choose
+        select_stub:invokes(function(values, _opts, callback)
+            items, choose = values, callback
+        end)
+        use_context(agent, nil)
+        SessionRestore.show_picker()
+        agent.ready_callback(agent)
+        agent.list_error = { message = "offline" }
+        assert.equal(2, #items)
+        choose(items[2])
+        assert.equal("one", items[1].session_id)
+        assert.equal("next", items[2].cursor)
+        agent.list_error = nil
+        agent.list_result = { sessions = { { sessionId = "two" } } }
+        choose(items[2])
+        assert.equal(2, #items)
+        assert.equal("two", items[2].session_id)
+    end)
+
+    it("stops offering a cursor already retrieved", function()
+        local agent = new_agent()
+        agent.list_result = { sessions = {}, nextCursor = "loop" }
+        local items, choose
+        select_stub:invokes(function(values, _opts, callback)
+            items, choose = values, callback
+        end)
+        use_context(agent, nil)
+        SessionRestore.show_picker()
+        agent.ready_callback(agent)
+        agent.list_result.sessions = { { sessionId = "one" } }
+        assert.is_not_nil(items)
+        choose(items[1])
+        assert.equal(1, #items)
+        assert.equal("one", items[1].session_id)
+        assert.spy(notify_stub).was.called(1)
+    end)
+
     it("lists through context without creating a manager", function()
         local agent = new_agent()
         agent.list_result = {

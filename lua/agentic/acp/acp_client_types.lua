@@ -34,7 +34,7 @@
 --- @field writeTextFile boolean
 
 --- @class agentic.acp.SessionCapabilities
---- @field list? boolean
+--- @field list? boolean|table
 
 --- @class agentic.acp.AgentCapabilities
 --- @field loadSession boolean

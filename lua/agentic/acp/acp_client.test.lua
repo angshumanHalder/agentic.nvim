@@ -513,6 +513,45 @@ describe("ACPClient", function()
             assert.equal("/tmp", decoded.params.cwd)
         end)
 
+        it("passes an opaque pagination cursor unchanged", function()
+            local client = create_ready_client(LIST_CAPS)
+            client:list_sessions("/tmp", function() end, "opaque+/==")
+            local decoded = vim.json.decode(transport_send_stub.calls[1][2])
+            assert.equal("opaque+/==", decoded.params.cursor)
+        end)
+
+        it("does not request unsupported session listing", function()
+            local caps = vim.deepcopy(LIST_CAPS)
+            caps.sessionCapabilities = nil
+            local client = create_ready_client(caps)
+            local received_err
+            client:list_sessions("/tmp", function(_, err)
+                received_err = err
+            end)
+            assert.is_not_nil(received_err)
+            assert.spy(transport_send_stub).was.called(0)
+        end)
+
+        it(
+            "rejects malformed list responses before the picker sees them",
+            function()
+                for _, response in ipairs({
+                    { sessions = "invalid" },
+                    { sessions = { { sessionId = 123 } } },
+                    { sessions = {}, nextCursor = 42 },
+                }) do
+                    local client = create_ready_client(LIST_CAPS)
+                    stub_send_response(client, "session/list", response, nil)
+                    local received, received_err
+                    client:list_sessions("/tmp", function(result, err)
+                        received, received_err = result, err
+                    end)
+                    assert.is_nil(received)
+                    assert.is_not_nil(received_err)
+                end
+            end
+        )
+
         it("callback receives SessionListResponse on success", function()
             local client = create_ready_client(LIST_CAPS)
 

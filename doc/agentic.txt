@@ -832,7 +832,14 @@ Session restoration ~
                                             *agentic-session-restore*
 Sessions are interchangeable between Neovim and the terminal. Call
 |agentic.restore_session()| to see previous sessions from your
-provider.
+provider. The picker filters by the current working directory. Select
+"Load more sessions…" when offered to retrieve the next provider page;
+already listed sessions remain selectable. Cancel to stop fetching.
+
+Listing and loading are separate provider capabilities. If listing is not
+supported, |agentic.restore_session_by_id()| can still work when loading is
+supported. An already-open session can be selected without load support.
+Session IDs are passed unchanged; history is stored by the provider.
 
 When a current session exists, restoration asks whether to keep it
 running in the background or destroy it. The current chat stays visible

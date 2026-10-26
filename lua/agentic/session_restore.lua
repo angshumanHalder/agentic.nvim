@@ -47,10 +47,13 @@ local function notify_readiness_failure(operation)
     end
 end
 
---- @param item { display: string, session_id: string }
+--- @param item { display: string, session_id?: string }
 --- @param supports_chunks boolean|nil
 --- @return string label
 local function format_picker_item(item, supports_chunks)
+    if not item.session_id then
+        return item.display
+    end
     return supports_chunks and item.display
         or item.display .. " " .. item.session_id
 end
@@ -110,7 +113,40 @@ function SessionRestore.show_picker()
     end
 
     local cwd = vim.fn.getcwd()
-    context.agent:when_ready(function()
+    local items, seen, cursors = {}, {}, {}
+    local fetch_page
+    local function show_page(cursor)
+        local choices = vim.list_extend({}, items)
+        if cursor then
+            choices[#choices + 1] =
+                { display = "Load more sessions…", cursor = cursor }
+        end
+        if #choices == 0 then
+            Logger.notify("No saved sessions found", vim.log.levels.INFO)
+            return
+        end
+        vim.schedule(function()
+            vim.ui.select(choices, {
+                prompt = "Select session to restore:",
+                format_item = format_picker_item,
+            }, function(choice)
+                if not choice then
+                    return
+                end
+                if choice.cursor then
+                    fetch_page(choice.cursor)
+                else
+                    restore(
+                        context,
+                        choice.session_id,
+                        choice.title,
+                        choice.updated_at
+                    )
+                end
+            end)
+        end)
+    end
+    fetch_page = function(cursor)
         context.agent:list_sessions(cwd, function(result, err)
             if err or not result then
                 Logger.notify(
@@ -118,52 +154,52 @@ function SessionRestore.show_picker()
                         .. (err and err.message or "unknown error"),
                     vim.log.levels.WARN
                 )
+                if #items > 0 then
+                    show_page(cursor)
+                end
                 return
             end
 
-            if #result.sessions == 0 then
-                Logger.notify("No saved sessions found", vim.log.levels.INFO)
-                return
+            if cursor then
+                cursors[cursor] = true
             end
-
-            local items = {}
             for _, session in ipairs(result.sessions) do
-                local date = session.updatedAt
-                        and session.updatedAt:sub(1, 16):gsub("T", " ")
-                    or "unknown date"
-                local title = (session.title or "(no title)")
-                    :gsub("\r\n", " ")
-                    :gsub("[\r\n]", " ")
-                    :sub(1, 80)
-                items[#items + 1] = {
-                    display = string.format(
-                        "%s - %s - %s",
-                        date,
-                        session.sessionId:sub(1, 8),
-                        title
-                    ),
-                    session_id = session.sessionId,
-                    title = session.title,
-                    updated_at = session.updatedAt,
-                }
+                if not seen[session.sessionId] then
+                    seen[session.sessionId] = true
+                    local date = session.updatedAt
+                            and session.updatedAt:sub(1, 16):gsub("T", " ")
+                        or "unknown date"
+                    local title = (session.title or "(no title)")
+                        :gsub("\r\n", " ")
+                        :gsub("[\r\n]", " ")
+                        :sub(1, 80)
+                    items[#items + 1] = {
+                        display = string.format(
+                            "%s - %s - %s",
+                            date,
+                            session.sessionId:sub(1, 8),
+                            title
+                        ),
+                        session_id = session.sessionId,
+                        title = session.title,
+                        updated_at = session.updatedAt,
+                    }
+                end
             end
 
-            vim.schedule(function()
-                vim.ui.select(items, {
-                    prompt = "Select session to restore:",
-                    format_item = format_picker_item,
-                }, function(choice)
-                    if choice then
-                        restore(
-                            context,
-                            choice.session_id,
-                            choice.title,
-                            choice.updated_at
-                        )
-                    end
-                end)
-            end)
-        end)
+            local next_cursor = result.nextCursor
+            if next_cursor and cursors[next_cursor] then
+                Logger.notify(
+                    "Agent repeated a session pagination cursor",
+                    vim.log.levels.WARN
+                )
+                next_cursor = nil
+            end
+            show_page(next_cursor)
+        end, cursor)
+    end
+    context.agent:when_ready(function()
+        fetch_page(nil)
     end, notify_readiness_failure("list sessions"))
 end
 

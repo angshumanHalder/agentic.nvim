@@ -932,7 +932,8 @@ end
 
 --- @param cwd string
 --- @param callback fun(result: agentic.acp.SessionListResponse|nil, err: agentic.acp.ACPError|nil)
-function ACPClient:list_sessions(cwd, callback)
+--- @param cursor string|nil
+function ACPClient:list_sessions(cwd, callback, cursor)
     local caps = self.agent_capabilities
     if
         not caps
@@ -951,18 +952,42 @@ function ACPClient:list_sessions(cwd, callback)
 
     self:_send_request("session/list", {
         cwd = cwd,
+        cursor = cursor,
     }, function(result, err)
         if err then
             callback(nil, err)
             return
         end
 
-        if type(result) ~= "table" or not result.sessions then
+        local valid = type(result) == "table"
+            and type(result.sessions) == "table"
+            and vim.islist(result.sessions)
+            and (
+                result.nextCursor == nil
+                or type(result.nextCursor) == "string"
+            )
+        if valid and result then
+            for _, session in ipairs(result.sessions) do
+                if
+                    type(session) ~= "table"
+                    or type(session.sessionId) ~= "string"
+                    or (session.title ~= nil and type(session.title) ~= "string")
+                    or (
+                        session.updatedAt ~= nil
+                        and type(session.updatedAt) ~= "string"
+                    )
+                then
+                    valid = false
+                    break
+                end
+            end
+        end
+        if not valid then
             callback(
                 nil,
                 self:__create_error(
                     self.ERROR_CODES.PROTOCOL_ERROR,
-                    "Malformed session/list response: missing sessions field"
+                    "Malformed session/list response"
                 )
             )
             return
