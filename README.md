@@ -862,6 +862,7 @@ your setup:
 
       -- Keybindings for chat buffer navigation
       chat = {
+        view_table = "T",
         next_line = "j",
         prev_line = "k",
         next_heading = "]]",
@@ -1367,9 +1368,14 @@ correctly without interference from your statusline plugin.
 
 ### Markdown render plugins
 
-The conversation buffer has filetype `AgenticChat`. Native highlighting does
-not align table columns. An optional Markdown renderer can add table alignment;
-include `AgenticChat` in both its file types and its lazy-loading triggers.
+The conversation buffer has filetype `AgenticChat`. Place the cursor on a pipe
+table and press `T` to open an aligned, read-only table view; press `q` or
+`<Esc>` to return. Long rows stay on one line and can be scrolled horizontally
+with `zl`/`zh`. The source conversation is unchanged. Configure this key with
+`keymaps.chat.view_table`.
+
+An optional Markdown renderer can decorate inline tables that fit in the chat
+panel. Include `AgenticChat` in both its file types and lazy-loading triggers:
 
 ```lua
 {
@@ -1391,8 +1397,10 @@ include `AgenticChat` in both its file types and its lazy-loading triggers.
 ```
 
 With `vim.pack`, load the renderer on the `AgenticChat` FileType event as well
-as `markdown`. Disabling `anti_conceal` keeps read-only table rows aligned when
-the cursor enters them. Chat `j`/`k` move through display lines; counted motions
+as `markdown`. Wide rows still wrap independently in a narrow panel, and the
+renderer parses large histories on first focus. The built-in `T` view avoids
+both limits without another dependency. Chat `j`/`k` move through display lines;
+counted motions
 such as `5j` still move through buffer lines. Configure `keymaps.chat.next_line`
 and `prev_line`, or set either to `{}` to leave its native key untouched.
 

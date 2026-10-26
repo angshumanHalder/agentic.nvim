@@ -665,6 +665,7 @@ These keybindings are automatically set in Agentic buffers:
   q                      n       Hide chat widget (session keeps running)
   d                      n/v     Remove file/selection/diagnostic
   j / k                  n       Next / previous display line in chat
+  T                      n       View aligned table under cursor
   ]]                     n       Next chat heading
   [[                     n       Previous chat heading
   ]t                     n       Next tool call
@@ -677,6 +678,9 @@ Uncounted j/k move through wrapped display lines. Counted motions such as
 and prev_line; set either to {} to keep Neovim's native key behavior.
 The chat uses native smoothscroll; override through
 windows.chat.win_opts.smoothscroll if needed.
+T opens the table under the cursor in a read-only aligned view. q or <Esc>
+closes it; zl/zh scroll wide rows horizontally. Configure the key with
+keymaps.chat.view_table. The conversation buffer is unchanged.
 
 Permission keymaps (active while a permission request is pending):
 
@@ -724,6 +728,7 @@ Override default keybindings via the `keymaps` config option:
         },
       },
       chat = {
+        view_table = "T",
         next_line = "j",
         prev_line = "k",
         next_heading = "]]",
@@ -1222,8 +1227,9 @@ Disable lualine in Agentic windows to prevent conflicts:
                                           *agentic-render-markdown*
 render-markdown.nvim ~
 
-Add `AgenticChat` to the file types and lazy-loading triggers. Native syntax
-colors table markers but does not align columns:
+The built-in T key opens a wide table in an aligned view without an optional
+renderer. To decorate inline tables that fit the chat panel, add `AgenticChat`
+to the renderer's file types and lazy-loading triggers:
 >lua
   {
     "MeanderingProgrammer/render-markdown.nvim",
@@ -1242,6 +1248,9 @@ colors table markers but does not align columns:
     },
   }
 <
+
+Rows wider than the chat panel still wrap independently, and the optional
+renderer parses long histories on first focus. Use T for wide tables.
 
                                               *agentic-blink-cmp*
 blink.cmp ~

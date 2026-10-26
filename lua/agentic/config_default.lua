@@ -76,6 +76,7 @@
 --- @field cycle_prev agentic.UserConfig.KeymapValue Focus previous pending permission block
 
 --- @class agentic.UserConfig.Keymaps.Chat
+--- @field view_table agentic.UserConfig.KeymapValue Open the table under the cursor in an aligned view
 --- @field next_line agentic.UserConfig.KeymapValue Move down by display line (counts use buffer lines)
 --- @field prev_line agentic.UserConfig.KeymapValue Move up by display line (counts use buffer lines)
 --- @field next_heading agentic.UserConfig.KeymapValue Jump to next chat heading
@@ -522,6 +523,7 @@ local ConfigDefault = {
 
         --- Keys bindings for chat buffer navigation
         chat = {
+            view_table = "T",
             next_line = "j",
             prev_line = "k",
             next_heading = "]]",

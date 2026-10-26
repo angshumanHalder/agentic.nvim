@@ -1,5 +1,6 @@
 local assert = require("tests.helpers.assert")
 local ChatNavigation = require("agentic.ui.chat_navigation")
+local ChatTable = require("agentic.ui.chat_table")
 local Config = require("agentic.config")
 local ToolCallBlocks = require("agentic.ui.tool_call_blocks")
 
@@ -8,6 +9,7 @@ describe("agentic.ui.ChatNavigation", function()
     local bufnr
     --- @type integer|nil
     local winid
+    local table_winid
 
     before_each(function()
         bufnr = vim.api.nvim_create_buf(false, true)
@@ -26,6 +28,10 @@ describe("agentic.ui.ChatNavigation", function()
     end)
 
     after_each(function()
+        if table_winid and vim.api.nvim_win_is_valid(table_winid) then
+            vim.api.nvim_win_close(table_winid, true)
+        end
+        table_winid = nil
         if winid and vim.api.nvim_win_is_valid(winid) then
             vim.api.nvim_win_close(winid, true)
         end
@@ -53,6 +59,58 @@ describe("agentic.ui.ChatNavigation", function()
         ---@cast winid integer
         return vim.api.nvim_win_get_cursor(winid)[1] - 1
     end
+
+    it("opens an aligned table view without changing the chat", function()
+        vim.treesitter.language.register("markdown", "AgenticChat")
+        local source = {
+            "Before",
+            "",
+            "| Command | Current issue | Required arity |",
+            "|---|---|---|",
+            "| [`TYPE`](</very/long/path/to/commands.rs:42>) | Extra arguments are ignored | Exactly 1 |",
+            "| [`BLPOP`](</very/long/path/to/commands.rs:75>) | Missing timeout in current implementation | 2 or more |",
+            "",
+            "After",
+        }
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, source)
+        open_window_at(4)
+        table_winid = ChatTable.open(bufnr)
+        assert.is_not_nil(table_winid)
+        if not table_winid then
+            return
+        end
+        local view_buf = vim.api.nvim_win_get_buf(table_winid)
+        local rows = vim.api.nvim_buf_get_lines(view_buf, 0, -1, false)
+        assert.equal(3, #rows)
+        assert.is_true(rows[2]:find("TYPE", 1, true) ~= nil)
+        assert.is_false(rows[2]:find("/very/long/path", 1, true) ~= nil)
+        assert.is_false(vim.wo[table_winid].wrap)
+        assert.is_false(vim.bo[view_buf].modifiable)
+        local function bars(row)
+            local cols = {}
+            for col in row:gmatch("()|") do
+                cols[#cols + 1] = col
+            end
+            return cols
+        end
+        assert.equal(bars(rows[1]), bars(rows[2]))
+        assert.equal(bars(rows[2]), bars(rows[3]))
+        assert.equal(source, vim.api.nvim_buf_get_lines(bufnr, 0, -1, false))
+        local close = vim.fn.maparg("q", "n", false, true).callback
+        assert.is_not_nil(close)
+        if close then
+            close()
+        end
+        assert.is_false(vim.api.nvim_win_is_valid(table_winid))
+        assert.is_false(vim.api.nvim_buf_is_valid(view_buf))
+        assert.equal(winid, vim.api.nvim_get_current_win())
+    end)
+
+    it("does not open a view outside a table", function()
+        open_window_at(0)
+        assert.is_nil(ChatTable.open(bufnr))
+        assert.equal(winid, vim.api.nvim_get_current_win())
+    end)
 
     describe("heading_target_row", function()
         --- @type { name: string, dir: integer, count: integer, cursor: integer, expected: integer|nil }[]
@@ -230,6 +288,7 @@ describe("agentic.ui.ChatNavigation", function()
             end
 
             assert.is_true(has_keymap("n", first_lhs(keymaps.next_heading)))
+            assert.is_true(has_keymap("n", first_lhs(keymaps.view_table)))
             assert.is_true(has_keymap("n", first_lhs(keymaps.prev_heading)))
             assert.is_true(has_keymap("n", first_lhs(keymaps.next_tool_call)))
             assert.is_true(has_keymap("n", first_lhs(keymaps.prev_tool_call)))
