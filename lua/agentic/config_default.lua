@@ -254,6 +254,7 @@
 --- Control various behaviors and features of the plugin
 --- @class agentic.UserConfig.Settings
 --- @field move_cursor_to_chat_on_submit boolean Automatically move cursor to chat window after submitting a prompt
+--- @field session_scope "global"|"project" Which sessions resolve as current: any, or only those created in the current cwd
 
 --- @class (partial) agentic.PartialUserConfig.Windows.Chat: agentic.UserConfig.Windows.Chat
 --- @class (partial) agentic.PartialUserConfig.Windows.Input: agentic.UserConfig.Windows.Input
@@ -639,6 +640,7 @@ local ConfigDefault = {
 
     settings = {
         move_cursor_to_chat_on_submit = true,
+        session_scope = "global",
     },
 
     provider_switcher = {

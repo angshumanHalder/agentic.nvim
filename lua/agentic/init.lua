@@ -301,6 +301,17 @@ function Agentic.setup(opts)
         desc = "Cleanup Agentic processes on exit",
     })
 
+    -- Scheduled: DirChanged can fire inside a BufEnter that is still placing a
+    -- window, and showing a session opens windows.
+    vim.api.nvim_create_autocmd("DirChanged", {
+        group = cleanup_group,
+        pattern = "global",
+        callback = function()
+            vim.schedule(SessionRegistry.show_project_session)
+        end,
+        desc = "Show the current project's session (session_scope = project)",
+    })
+
     if Config.image_paste.enabled then
         local WidgetRegistry = require("agentic.ui.widget_registry")
 

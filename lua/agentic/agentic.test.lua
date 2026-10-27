@@ -1076,3 +1076,33 @@ describe("agentic: restore entry points", function()
         end
     )
 end)
+
+describe("agentic: DirChanged autocommand", function()
+    local Child = require("tests.helpers.child")
+    local child = Child:new()
+
+    before_each(function()
+        child.setup()
+    end)
+
+    after_each(function()
+        child.stop()
+    end)
+
+    it("shows the current project's session after a global cd", function()
+        child.lua([[
+            local SessionRegistry = require("agentic.session_registry")
+            _G.project_session_calls = 0
+            SessionRegistry.show_project_session = function()
+                _G.project_session_calls = _G.project_session_calls + 1
+            end
+
+            local dir = vim.fn.tempname()
+            vim.fn.mkdir(dir, "p")
+            vim.cmd.cd(dir)
+        ]])
+        child.flush()
+
+        assert.equal(1, child.lua_get("_G.project_session_calls"))
+    end)
+end)

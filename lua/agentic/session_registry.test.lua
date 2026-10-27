@@ -149,6 +149,9 @@ describe("agentic.SessionRegistry", function()
         provider_switcher = {
             hide_unhealthy_providers = true,
         },
+        settings = {
+            session_scope = "global",
+        },
     }
 
     default_config_mock = {
@@ -215,6 +218,9 @@ describe("agentic.SessionRegistry", function()
         }
         config_mock.provider_switcher = {
             hide_unhealthy_providers = true,
+        }
+        config_mock.settings = {
+            session_scope = "global",
         }
         default_config_mock.provider = "claude-acp"
 
@@ -1165,6 +1171,149 @@ describe("agentic.SessionRegistry", function()
 
         it("returns an empty list for an empty registry", function()
             assert.equal(0, #SessionRegistry.list())
+        end)
+    end)
+
+    describe("session_scope = project", function()
+        --- @type TestStub|nil
+        local getcwd_stub
+        local cwd = "/projects/a"
+
+        before_each(function()
+            config_mock.settings.session_scope = "project"
+            cwd = "/projects/a"
+            getcwd_stub = spy.stub(vim.fn, "getcwd")
+            getcwd_stub:invokes(function()
+                return cwd
+            end)
+        end)
+
+        after_each(function()
+            if getcwd_stub then
+                getcwd_stub:revert()
+                getcwd_stub = nil
+            end
+        end)
+
+        --- @param key integer
+        --- @param project string
+        --- @param visible_tab integer|nil
+        --- @param label string|nil
+        --- @return table session
+        local function register(key, project, visible_tab, label)
+            local session = create_mock_session(visible_tab, label)
+            session.session_key = key
+            session.project_cwd = project
+            SessionRegistry.sessions[key] = session
+            return session
+        end
+
+        it("records the cwd a session was created in", function()
+            local session = SessionRegistry.create()
+
+            assert.equal("/projects/a", session.project_cwd)
+        end)
+
+        it("resolves the most recent session of the current project", function()
+            local project_a = register(1, "/projects/a")
+            local project_b = register(2, "/projects/b")
+            SessionRegistry._most_recent = project_b
+
+            assert.is_true(SessionRegistry.current() == project_a)
+        end)
+
+        it(
+            "resolves nothing in a project without a session, and creates none",
+            function()
+                SessionRegistry._most_recent = register(1, "/projects/b")
+                create_session_stub = spy.stub(SessionRegistry, "create")
+
+                assert.is_nil(SessionRegistry.current())
+                assert.spy(create_session_stub).was.called(0)
+            end
+        )
+
+        it(
+            "skips another project's session visible in the current tab",
+            function()
+                local current_tab = vim.api.nvim_get_current_tabpage()
+                local project_b = register(1, "/projects/b", current_tab)
+                local project_a = register(2, "/projects/a")
+                SessionRegistry._most_recent = project_b
+
+                assert.is_true(SessionRegistry.visible_here() == project_b)
+                assert.is_true(SessionRegistry.current() == project_a)
+            end
+        )
+
+        it(
+            "prefers this project's session visible in the current tab",
+            function()
+                local current_tab = vim.api.nvim_get_current_tabpage()
+                local hidden = register(1, "/projects/a")
+                local visible = register(2, "/projects/a", current_tab)
+                SessionRegistry._most_recent = hidden
+
+                assert.is_true(SessionRegistry.current() == visible)
+            end
+        )
+
+        it("keeps the global fallback when session_scope is global", function()
+            config_mock.settings.session_scope = "global"
+            register(1, "/projects/a")
+            local project_b = register(2, "/projects/b")
+            SessionRegistry._most_recent = project_b
+
+            assert.is_true(SessionRegistry.current() == project_b)
+        end)
+
+        describe("show_project_session", function()
+            it(
+                "swaps another project's visible session for this project's",
+                function()
+                    local current_tab = vim.api.nvim_get_current_tabpage()
+                    register(1, "/projects/b", current_tab, "b")
+                    register(2, "/projects/a", nil, "a")
+
+                    SessionRegistry.show_project_session()
+
+                    assert.same({ "b:hide(keep)", "a:show" }, widget_events)
+                    assert.same({ focus_prompt = false }, show_opts[1].opts)
+                end
+            )
+
+            it(
+                "hides another project's session when this project has none",
+                function()
+                    local current_tab = vim.api.nvim_get_current_tabpage()
+                    register(1, "/projects/b", current_tab, "b")
+
+                    SessionRegistry.show_project_session()
+
+                    assert.same({ "b:hide" }, widget_events)
+                end
+            )
+
+            it("leaves this project's visible session alone", function()
+                local current_tab = vim.api.nvim_get_current_tabpage()
+                register(1, "/projects/a", current_tab, "a")
+                register(2, "/projects/a", nil, "other")
+
+                SessionRegistry.show_project_session()
+
+                assert.same({}, widget_events)
+            end)
+
+            it("does nothing when session_scope is global", function()
+                config_mock.settings.session_scope = "global"
+                local current_tab = vim.api.nvim_get_current_tabpage()
+                register(1, "/projects/b", current_tab, "b")
+                register(2, "/projects/a", nil, "a")
+
+                SessionRegistry.show_project_session()
+
+                assert.same({}, widget_events)
+            end)
         end)
     end)
 

@@ -63,6 +63,11 @@ stable for the **SessionManager**'s whole life. The only stable identity a
 **Session** has; published to users on every hook payload. _Avoid_: keying
 anything off a **Tabpage** handle.
 
+**Project cwd**: The editor cwd recorded on a **SessionManager** when
+**SessionRegistry** creates it. With `settings.session_scope = "project"`, only
+sessions whose project cwd matches the current cwd resolve as current. Not the
+agent's ACP cwd, which `acp_configs.session_cwd` can change.
+
 **Session title**: Optional local navigation metadata for a **SessionManager**,
 held on **ChatHistory**. Derived from the first prompt submit, or seeded by a
 **Provider**'s `session/list` item on restore when present. It is never sent to

@@ -98,6 +98,7 @@ function SessionRegistry.create(provider_name, start_spec, agent)
     local session_key = SessionRegistry._next_id + 1
     SessionRegistry._next_id = session_key
     session.session_key = session_key
+    session.project_cwd = vim.fn.getcwd()
     SessionRegistry.sessions[session_key] = session
     session.widget.session_key = session_key
 
@@ -378,10 +379,29 @@ function SessionRegistry.find_by_acp_session_id(acp_session_id, agent)
 end
 
 --- Visible here, else most recently visible. Never creates.
+--- With `settings.session_scope = "project"`, only sessions created in the
+--- current cwd qualify.
 --- @return agentic.SessionManager|nil
 function SessionRegistry.current()
-    return SessionRegistry.visible_here()
-        or registered(SessionRegistry._most_recent)
+    if Config.settings.session_scope ~= "project" then
+        return SessionRegistry.visible_here()
+            or registered(SessionRegistry._most_recent)
+    end
+
+    local cwd = vim.fn.getcwd()
+    local visible = SessionRegistry.visible_here()
+
+    if visible and visible.project_cwd == cwd then
+        return visible
+    end
+
+    for _, session in ipairs(SessionRegistry.list()) do
+        if session.project_cwd == cwd then
+            return session
+        end
+    end
+
+    return nil
 end
 
 --- `current`, else a NEW session plus a provider subprocess.
@@ -406,6 +426,29 @@ function SessionRegistry.resolve_or_create(callback)
     end
 
     return instance
+end
+
+--- With `settings.session_scope = "project"`, replaces another project's
+--- session visible in this tabpage with the current project's, or hides it.
+function SessionRegistry.show_project_session()
+    if Config.settings.session_scope ~= "project" then
+        return
+    end
+
+    local visible = SessionRegistry.visible_here()
+
+    if not visible or visible.project_cwd == vim.fn.getcwd() then
+        return
+    end
+
+    local session = SessionRegistry.current()
+    local session_key = session and session.session_key
+
+    if session_key then
+        SessionRegistry.show_session(session_key, { focus_prompt = false })
+    else
+        visible.widget:hide()
+    end
 end
 
 --- Resolves whether a source session stays alive before another session starts.

@@ -46,6 +46,14 @@ Four entry points on `SessionRegistry`. Only one creates. Pick in this order:
 4. Otherwise -> `current()`. `visible_here()`, falling back to the registered
    most-recent session. Never creates. **This is the default choice.**
 
+With `settings.session_scope = "project"`, `current()` (and so
+`resolve_or_create()`) only returns a session whose `project_cwd`, the editor
+cwd recorded by `SessionRegistry.create`, equals `vim.fn.getcwd()`. A session
+visible here from another project is skipped, and `nil` comes back when this
+project has none. `visible_here()` and `get()` ignore the scope. Regressions:
+`lua/agentic/session_registry.test.lua::"skips another project's session visible in the current tab"`
+and `::"resolves nothing in a project without a session, and creates none"`.
+
 Worked examples:
 
 - `Agentic.close`, `Agentic.rotate_layout` — `visible_here`; acting on another

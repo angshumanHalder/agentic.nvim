@@ -331,6 +331,13 @@ settings ~
   `move_cursor_to_chat_on_submit`  Automatically move cursor to chat
                        window after submitting a prompt.
                        Default: `true`.
+  `session_scope`      Which sessions commands act on. `"global"`: the
+                       session visible in the current tab, else the most
+                       recent one. `"project"`: only sessions created in the
+                       current working directory; a project without one
+                       gets a new session, and changing directory swaps a
+                       visible chat for that project's session.
+                       Default: `"global"`.
 
                                           *agentic-config-provider-switcher*
 provider_switcher ~

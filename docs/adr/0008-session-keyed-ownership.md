@@ -1,7 +1,7 @@
 # 0008. Session-keyed ownership
 
 - Status: accepted
-- Last updated: 2026-08-21
+- Last updated: 2026-10-27
 - Related: PR #283, PR #261, issue #282
 
 ## Context
@@ -48,6 +48,16 @@ current tabpage; `current()` adds a `_most_recent` fallback;
 `resolve_or_create()` adds creation. The verbose name is load-bearing: four call
 sites reached for a short `resolve` and each silently spawned a provider
 subprocess.
+
+**Resolution can be scoped to a project.** With
+`settings.session_scope = "project"`, `current()` only considers sessions whose
+`SessionManager.project_cwd` (the editor cwd recorded by
+`SessionRegistry.create`) matches the current cwd, so every command that acts on
+"the current session" acts on this project's, and a project without one gets a
+new session. `SessionRegistry.show_project_session`, run from a `DirChanged`
+autocmd in `Agentic.setup`, swaps another project's session visible in this
+tabpage for the current project's through `show_session`, or hides it. The
+default `"global"` keeps the unscoped fallback.
 
 **`show_session` is the only path that SWITCHES a session between tabpages.** It
 hides every other session in the current tabpage, hides the target if visible in
@@ -152,6 +162,9 @@ prompt to label `select_session` rows.
   `focusable = false`, so window-counting assertions must filter on both.
 - Registry keys and tabpage handles are both integers and no longer
   interchangeable. Code conflating them looks correct and behaves wrongly.
+- In project scope a session's project is fixed at creation. A `:cd` inside a
+  project moves the user to a scope with no session; the next creating command
+  starts a new one there.
 
 ## Rejected / superseded alternatives
 
@@ -171,6 +184,9 @@ prompt to label `select_session` rows.
 | Capture the size donor in `show_session` before repointing       | `resolve_or_create` repoints one call earlier, so the guard would duplicate there and at every future write site. Recording the displaced session fixes all paths at the cursor.           |
 | Fetch session titles from `session/list`                         | No ACP title on `session/new`, `session/load`, or any `SessionUpdate`. Reconciling costs a round trip per provider before the picker renders.                                              |
 | Rely only on per-handler liveness guards                         | Every new handler could forget. `ACPClient:__with_subscriber` provides the central notification gate; handler and scheduled-callback guards remain required at their own async boundaries. |
+| Scope sessions in user config by overriding registry functions   | Replaced `SessionRegistry.create` and `current` from outside the plugin; any internal rename silently broke it, and nothing tested it.                                                     |
+| Match the session's ACP cwd instead of the editor cwd            | `acp_configs.session_cwd` and per-call `cwd` can start the agent elsewhere, so it never equals `getcwd()` in the project the user is in.                                                   |
+| Create a session automatically on `DirChanged`                   | A directory change would spawn provider work the user never asked for; creation stays on explicit commands.                                                                                |
 
 ## Changelog
 
@@ -180,6 +196,7 @@ prompt to label `select_session` rows.
 | 2026-07-30 | Clarified that the buffer-name key suffix is published per header render, not retroactively. |
 | 2026-08-09 | Replaced additive restore with atomic one-shot session replacement.                          |
 | 2026-08-21 | Made restore and `/new` ask for source lifecycle and require explicit destruction.           |
+| 2026-10-27 | Added opt-in project-scoped resolution (`settings.session_scope`).                           |
 
 ## Sources
 
