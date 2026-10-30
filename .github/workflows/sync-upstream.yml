@@ -1,0 +1,85 @@
+name: Sync upstream
+
+# Daily: merge carlos-algms/agentic.nvim main into this fork through a PR, and
+# merge it once PR Checks pass. Uses a merge commit, not a squash, so upstream
+# history stays shared and the next sync starts from it.
+#
+# A PR opened with GITHUB_TOKEN does not trigger other workflows, so this job
+# starts PR Checks on the branch itself and waits for the result. A merge
+# conflict or a failed check stops the run (GitHub emails you) and leaves the
+# PR open to finish by hand.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: sync-upstream
+
+jobs:
+  sync:
+    if: github.repository == 'angshumanHalder/agentic.nvim'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: sync-upstream
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge upstream into the sync branch
+        id: merge
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote add upstream https://github.com/carlos-algms/agentic.nvim.git
+          git fetch upstream main
+          if git merge-base --is-ancestor upstream/main origin/main; then
+            echo 'Already up to date with upstream'
+            exit 0
+          fi
+          # Reuse a branch left by a failed run: add commits, never force-push.
+          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null; then
+            git checkout -B "$BRANCH" "origin/$BRANCH"
+            git merge --no-edit origin/main
+          else
+            git checkout -b "$BRANCH"
+          fi
+          git merge --no-edit upstream/main
+          git push origin "$BRANCH"
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+
+      - name: Open the pull request
+        if: steps.merge.outputs.changed == 'true'
+        run: |
+          if [ "$(gh pr view "$BRANCH" --json state -q .state 2> /dev/null)" != OPEN ]; then
+            gh pr create --head "$BRANCH" --base main \
+              --title 'chore: sync with upstream' \
+              --body 'Merges carlos-algms/agentic.nvim `main`. Opened by `.github/workflows/sync-upstream.yml`, which merges it once PR Checks pass.'
+          fi
+
+      - name: Run PR Checks on the branch
+        if: steps.merge.outputs.changed == 'true'
+        run: |
+          sha=$(git rev-parse HEAD)
+          gh workflow run pr-check.yml --ref "$BRANCH"
+          for _ in $(seq 30); do
+            id=$(gh run list --workflow pr-check.yml --commit "$sha" --event workflow_dispatch \
+              --limit 1 --json databaseId -q '.[0].databaseId')
+            [ -n "$id" ] && break
+            sleep 10
+          done
+          [ -n "$id" ] || { echo 'PR Checks never started'; exit 1; }
+          gh run watch "$id" --exit-status --interval 30
+
+      - name: Merge the pull request
+        if: steps.merge.outputs.changed == 'true'
+        run: gh pr merge "$BRANCH" --merge --delete-branch
