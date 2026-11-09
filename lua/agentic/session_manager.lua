@@ -563,6 +563,25 @@ function SessionManager:_handle_input_submit(input_text)
         self._is_first_message = false
 
         local environment = EnvironmentInfo.get_system_info()
+        --- @type agentic.UserConfig.BeforeFirstPromptData
+        local first_prompt_hook_data = {
+            session_id = self.session_id,
+            session_key = self.session_key,
+            provider_name = self.agent.provider_config.name,
+        }
+        local extra_instructions =
+            Hooks.invoke_sync("before_first_prompt", first_prompt_hook_data)
+        -- The hook runs user code, which can destroy this session.
+        if self._destroyed then
+            Logger.notify(
+                "Session destroyed by the before_first_prompt hook. Prompt not sent.",
+                vim.log.levels.WARN
+            )
+            return false
+        end
+        if extra_instructions and extra_instructions ~= "" then
+            environment = environment .. "\n\n" .. extra_instructions
+        end
         local capabilities = self.agent.agent_capabilities
         local prompt_capabilities = capabilities
             and capabilities.promptCapabilities
