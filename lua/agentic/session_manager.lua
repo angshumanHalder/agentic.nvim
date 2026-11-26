@@ -559,14 +559,49 @@ function SessionManager:_handle_input_submit(input_text)
         text = input_text,
     })
 
-    -- After the user text, so the resume picker shows the prompt.
     if self._is_first_message then
         self._is_first_message = false
 
-        table.insert(prompt, {
-            type = "text",
-            text = EnvironmentInfo.get_system_info(),
-        })
+        local environment = EnvironmentInfo.get_system_info()
+        --- @type agentic.UserConfig.BeforeFirstPromptData
+        local first_prompt_hook_data = {
+            session_id = self.session_id,
+            session_key = self.session_key,
+            provider_name = self.agent.provider_config.name,
+        }
+        local extra_instructions =
+            Hooks.invoke_sync("before_first_prompt", first_prompt_hook_data)
+        -- The hook runs user code, which can destroy this session.
+        if self._destroyed then
+            Logger.notify(
+                "Session destroyed by the before_first_prompt hook. Prompt not sent.",
+                vim.log.levels.WARN
+            )
+            return false
+        end
+        if extra_instructions and extra_instructions ~= "" then
+            environment = environment .. "\n\n" .. extra_instructions
+        end
+        local capabilities = self.agent.agent_capabilities
+        local prompt_capabilities = capabilities
+            and capabilities.promptCapabilities
+        -- ACP prefers embedded resources for context; preserve text fallback order.
+        -- https://agentclientprotocol.com/protocol/v1/content#embedded-resource
+        if
+            prompt_capabilities
+            and prompt_capabilities.embeddedContext == true
+        then
+            prompt[#prompt + 1] = {
+                type = "resource",
+                resource = {
+                    uri = "agentic://environment",
+                    mimeType = "text/plain",
+                    text = environment,
+                },
+            }
+        else
+            prompt[#prompt + 1] = { type = "text", text = environment }
+        end
     end
 
     --- Written to the chat widget

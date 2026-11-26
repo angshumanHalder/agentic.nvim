@@ -2382,6 +2382,262 @@ describe("agentic.SessionManager", function()
             )
         end)
 
+        describe("first-turn environment context", function()
+            local EnvironmentInfo = require("agentic.utils.environment_info")
+            local environment = "<environment_info>fixture</environment_info>"
+            local environment_stub
+
+            before_each(function()
+                environment_stub = spy.stub(EnvironmentInfo, "get_system_info")
+                environment_stub:returns(environment)
+            end)
+
+            after_each(function()
+                environment_stub:revert()
+            end)
+
+            for _, case in ipairs({
+                {
+                    name = "embeds context when supported",
+                    capabilities = {
+                        promptCapabilities = { embeddedContext = true },
+                    },
+                    content = {
+                        type = "resource",
+                        resource = {
+                            uri = "agentic://environment",
+                            mimeType = "text/plain",
+                            text = environment,
+                        },
+                    },
+                },
+                {
+                    name = "keeps text when unsupported",
+                    capabilities = {
+                        promptCapabilities = { embeddedContext = false },
+                    },
+                    content = { type = "text", text = environment },
+                },
+                {
+                    name = "keeps text when embeddedContext is absent",
+                    capabilities = { promptCapabilities = {} },
+                    content = { type = "text", text = environment },
+                },
+                {
+                    name = "keeps text when promptCapabilities is absent",
+                    capabilities = {},
+                    content = { type = "text", text = environment },
+                },
+                {
+                    name = "keeps text when agent capabilities are absent",
+                    content = { type = "text", text = environment },
+                },
+            }) do
+                it(case.name, function()
+                    local session = make_session()
+                    session._is_first_message = true
+                    session.agent.agent_capabilities = case.capabilities --[[@as agentic.acp.AgentCapabilities|nil]]
+                    local prompts = {}
+                    session.agent.send_prompt = function(
+                        _self,
+                        _sid,
+                        prompt,
+                        callback
+                    )
+                        prompts[#prompts + 1] = prompt
+                        callback(nil, nil)
+                    end
+
+                    session:_handle_input_submit("add a docstring to hello.py")
+                    flush_schedule()
+
+                    assert.same({
+                        { type = "text", text = "add a docstring to hello.py" },
+                        case.content,
+                    }, prompts[1])
+                    assert.equal(
+                        "add a docstring to hello.py",
+                        session.chat_history.title
+                    )
+
+                    session:_handle_input_submit("now write the tests")
+                    flush_schedule()
+
+                    assert.same(
+                        { { type = "text", text = "now write the tests" } },
+                        prompts[2]
+                    )
+                    assert.equal(
+                        "add a docstring to hello.py",
+                        session.chat_history.title
+                    )
+                    assert.spy(environment_stub).was.called(1)
+                end)
+            end
+
+            describe("before_first_prompt hook", function()
+                --- @type fun(data: agentic.UserConfig.BeforeFirstPromptData): string|nil
+                local original
+                --- @type TestStub
+                local notify_stub
+
+                before_each(function()
+                    original = Config.hooks.before_first_prompt
+                    notify_stub = spy.stub(Logger, "notify")
+                end)
+
+                after_each(function()
+                    Config.hooks.before_first_prompt = original
+                    notify_stub:revert()
+                end)
+
+                --- @param hook fun(data: agentic.UserConfig.BeforeFirstPromptData): string|nil
+                --- @return agentic.acp.Content[][]
+                local function first_prompts(hook)
+                    Config.hooks.before_first_prompt = hook
+                    local session = make_session()
+                    session._is_first_message = true
+                    session.agent.agent_capabilities = {
+                        promptCapabilities = { embeddedContext = false },
+                    }
+                    local prompts = {}
+                    session.agent.send_prompt = function(
+                        _self,
+                        _sid,
+                        prompt,
+                        callback
+                    )
+                        prompts[#prompts + 1] = prompt
+                        callback(nil, nil)
+                    end
+
+                    session:_handle_input_submit("hello")
+                    session:_handle_input_submit("second")
+                    flush_schedule()
+                    return prompts
+                end
+
+                it(
+                    "appends the return value after the environment info",
+                    function()
+                        local prompts = first_prompts(function()
+                            return "You are running in Neovim."
+                        end)
+
+                        assert.equal(
+                            environment .. "\n\nYou are running in Neovim.",
+                            prompts[1][2].text
+                        )
+                        assert.same(
+                            { { type = "text", text = "second" } },
+                            prompts[2]
+                        )
+                    end
+                )
+
+                it(
+                    "passes the session identity and provider to the hook",
+                    function()
+                        local hook_spy = spy.new(function()
+                            return "extra"
+                        end)
+
+                        first_prompts(function(data)
+                            return hook_spy(data)
+                        end)
+
+                        assert.spy(hook_spy).was.called(1)
+                        local data = hook_spy.calls[1][1]
+                        assert.equal("session-1", data.session_id)
+                        assert.equal(7, data.session_key)
+                        assert.equal("TestProvider", data.provider_name)
+                        assert.is_nil(data.tab_page_id)
+                    end
+                )
+
+                it("appends nothing when the hook returns nil", function()
+                    local prompts = first_prompts(function()
+                        return nil
+                    end)
+
+                    assert.equal(environment, prompts[1][2].text)
+                end)
+
+                it(
+                    "appends nothing when the hook returns an empty string",
+                    function()
+                        local prompts = first_prompts(function()
+                            return ""
+                        end)
+
+                        assert.equal(environment, prompts[1][2].text)
+                    end
+                )
+
+                it("keeps the prompt when the hook throws", function()
+                    local prompts = first_prompts(function()
+                        error("boom")
+                    end)
+
+                    assert.equal(environment, prompts[1][2].text)
+                    assert.spy(notify_stub).was.called(1)
+                end)
+
+                it(
+                    "keeps the prompt when the hook returns a non-string",
+                    function()
+                        local returns_table = function()
+                            return {} --[[@as any]]
+                        end
+
+                        local prompts = first_prompts(returns_table)
+
+                        assert.equal(environment, prompts[1][2].text)
+                        assert.spy(notify_stub).was.called(1)
+                        assert.equal(
+                            vim.log.levels.WARN,
+                            notify_stub.calls[1][2]
+                        )
+                    end
+                )
+
+                it(
+                    "stops the submission when the hook destroys the session",
+                    function()
+                        local session = make_session()
+                        session._is_first_message = true
+                        session.agent.agent_capabilities = {
+                            promptCapabilities = { embeddedContext = false },
+                        }
+                        local prompts = {}
+                        session.agent.send_prompt = function(
+                            _self,
+                            _sid,
+                            prompt,
+                            callback
+                        )
+                            prompts[#prompts + 1] = prompt
+                            callback(nil, nil)
+                        end
+                        Config.hooks.before_first_prompt = function()
+                            session:destroy()
+                            return "extra"
+                        end
+
+                        local submitted = session:_handle_input_submit("hello")
+
+                        assert.is_false(submitted)
+                        assert.equal(0, #prompts)
+                        assert.spy(notify_stub).was.called(1)
+                        assert.equal(
+                            vim.log.levels.WARN,
+                            notify_stub.calls[1][2]
+                        )
+                    end
+                )
+            end)
+        end)
+
         it("truncates a long first prompt to 60 characters", function()
             local session = make_session()
 
