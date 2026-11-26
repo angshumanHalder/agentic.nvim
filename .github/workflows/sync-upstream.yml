@@ -29,6 +29,8 @@ jobs:
     timeout-minutes: 60
     env:
       GH_TOKEN: ${{ github.token }}
+      # gh prefers a remote named upstream as its base repo; pin it to the fork.
+      GH_REPO: ${{ github.repository }}
       BRANCH: sync-upstream
     steps:
       - uses: actions/checkout@v4
